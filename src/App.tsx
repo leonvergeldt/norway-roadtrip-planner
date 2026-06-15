@@ -3,6 +3,8 @@ import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, Polyline, useMap
 import type { LatLngExpression } from "leaflet";
 import {
   BatteryCharging,
+  ChevronDown,
+  ChevronUp,
   CloudRain,
   Compass,
   Flag,
@@ -138,6 +140,7 @@ function App() {
   const [isPickingStart, setIsPickingStart] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | undefined>();
+  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -273,6 +276,7 @@ function App() {
 
   async function showOptions() {
     setIsPickingStart(false);
+    setIsPanelCollapsed(false);
     setIsRouting(true);
     try {
       const nextOptions = await generateRouteOptions(
@@ -319,7 +323,7 @@ function App() {
   }
 
   return (
-    <main className="app-shell">
+    <main className={`app-shell ${isPanelCollapsed ? "panel-collapsed" : ""}`}>
       <section
         className={`map-stage ${isPickingStart ? "picking-start" : ""}`}
         aria-label="Interactieve kaart van Noorwegen"
@@ -365,12 +369,17 @@ function App() {
                         <dd>{highlight.importance}</dd>
                       </div>
                     </dl>
-                    {highlight.note && <p className="note">{highlight.note}</p>}
-                    {highlight.navigationLabel && (
-                      <p className="note">
-                        Navigatie: {highlight.navigationLabel}
-                        {highlight.navigationNote ? ` - ${highlight.navigationNote}` : ""}
-                      </p>
+                    {(highlight.note || highlight.navigationLabel) && (
+                      <details className="popup-details">
+                        <summary>Praktisch</summary>
+                        {highlight.note && <p className="note">{highlight.note}</p>}
+                        {highlight.navigationLabel && (
+                          <p className="note">
+                            Navigatie: {highlight.navigationLabel}
+                            {highlight.navigationNote ? ` - ${highlight.navigationNote}` : ""}
+                          </p>
+                        )}
+                      </details>
                     )}
                     <button type="button" className="text-button" onClick={() => useAsCurrent(highlight)}>
                       Gebruik als huidige locatie
@@ -442,11 +451,14 @@ function App() {
                   <div className="popup navigation-popup">
                     <strong>{index === 0 ? "Startpunt routeberekening" : "Navigatiepunt"}</strong>
                     <span>{navigationTargetText(highlight)}</span>
-                    <p>
-                      De routelijn gebruikt dit praktische aankomstpunt voor {highlight.name}, meestal een parking,
-                      trailhead, kade of centrumparking.
-                    </p>
-                    {highlight.navigationNote && <p className="note">{highlight.navigationNote}</p>}
+                    <details className="popup-details">
+                      <summary>Uitleg navigatiepunt</summary>
+                      <p>
+                        De routelijn gebruikt dit praktische aankomstpunt voor {highlight.name}, meestal een parking,
+                        trailhead, kade of centrumparking.
+                      </p>
+                      {highlight.navigationNote && <p className="note">{highlight.navigationNote}</p>}
+                    </details>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -458,6 +470,20 @@ function App() {
       </section>
 
       <aside className="side-panel" aria-label="Planner instellingen en routeopties">
+        <button
+          type="button"
+          className="panel-toggle"
+          onClick={() => setIsPanelCollapsed((current) => !current)}
+          aria-expanded={!isPanelCollapsed}
+        >
+          {isPanelCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          <span>{isPanelCollapsed ? "Planner openen" : "Kaart groter"}</span>
+          <em>
+            {currentHighlight.name}
+            {routeOptions.length ? ` · ${routeOptions.length} opties` : ""}
+          </em>
+        </button>
+        <div className="panel-content">
         <header className="panel-header">
           <div>
             <span className="eyebrow">EV roadtrip - 16 dagen</span>
@@ -775,6 +801,7 @@ function App() {
             </article>
           ))}
         </section>
+        </div>
       </aside>
     </main>
   );
