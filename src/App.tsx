@@ -30,6 +30,18 @@ const dayStyles: Array<{ value: TravelStyle; label: string }> = [
   { value: "slechtweer", label: "Slecht weer" },
 ];
 
+const mapLayerGroups: Array<{
+  id: string;
+  label: string;
+  categories: Category[];
+}> = [
+  { id: "city-culture", label: "Steden & cultuur", categories: ["city", "stave_church"] },
+  { id: "fjords-water", label: "Fjorden & water", categories: ["fjord", "kayak"] },
+  { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"] },
+  { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
+  { id: "ferry-logistics", label: "Ferry & logistiek", categories: ["ferry_route"] },
+];
+
 function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
   const map = useMap();
 
@@ -187,10 +199,11 @@ function App() {
     }));
   }
 
-  function toggleCategory(category: Category) {
-    const enabled = settings.enabledCategories.includes(category)
-      ? settings.enabledCategories.filter((item) => item !== category)
-      : [...settings.enabledCategories, category];
+  function toggleLayerGroup(categories: Category[]) {
+    const allEnabled = categories.every((category) => settings.enabledCategories.includes(category));
+    const enabled = allEnabled
+      ? settings.enabledCategories.filter((category) => !categories.includes(category))
+      : Array.from(new Set([...settings.enabledCategories, ...categories]));
     updateSettings({ enabledCategories: enabled });
   }
 
@@ -442,14 +455,6 @@ function App() {
 
           <FitRoute selectedOption={selectedOption} />
         </MapContainer>
-
-        <div className="map-badge">
-          <MapPinned size={18} />
-          <div>
-            <strong>Norway Flexible Roadtrip Planner</strong>
-            <span>{isPickingStart ? "Klik op de kaart om je startpunt te prikken" : "Kaart eerst, opties daarna"}</span>
-          </div>
-        </div>
       </section>
 
       <aside className="side-panel" aria-label="Planner instellingen en routeopties">
@@ -562,17 +567,28 @@ function App() {
             <h2>Kaartlagen</h2>
           </div>
           <div className="layer-grid">
-            {(Object.keys(categoryLabels) as Category[]).map((category) => (
-              <label key={category} className="layer-toggle">
-                <input
-                  type="checkbox"
-                  checked={settings.enabledCategories.includes(category)}
-                  onChange={() => toggleCategory(category)}
-                />
-                <span style={{ background: categoryColors[category] }} />
-                {categoryLabels[category]}
-              </label>
-            ))}
+            {mapLayerGroups.map((layer) => {
+              const isChecked = layer.categories.every((category) => settings.enabledCategories.includes(category));
+              const swatch = layer.categories.map((category) => categoryColors[category]);
+              return (
+                <label key={layer.id} className="layer-toggle">
+                  <input
+                    type="checkbox"
+                    checked={isChecked}
+                    onChange={() => toggleLayerGroup(layer.categories)}
+                  />
+                  <span
+                    style={{
+                      background:
+                        swatch.length > 1
+                          ? `linear-gradient(135deg, ${swatch[0]} 0 50%, ${swatch[1]} 50% 100%)`
+                          : swatch[0],
+                    }}
+                  />
+                  {layer.label}
+                </label>
+              );
+            })}
           </div>
         </section>
 

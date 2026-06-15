@@ -53,37 +53,8 @@ button {
   background: #dce7e5;
 }
 
-.map-badge {
-  position: absolute;
-  top: 18px;
-  left: 18px;
-  z-index: 500;
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  max-width: min(360px, calc(100% - 36px));
-  padding: 12px 14px;
-  color: #152238;
-  background: rgba(255, 255, 255, 0.92);
-  border: 1px solid rgba(21, 34, 56, 0.12);
-  border-radius: 8px;
-  box-shadow: 0 12px 28px rgba(21, 34, 56, 0.16);
-  backdrop-filter: blur(12px);
-}
-
-.map-badge strong,
-.map-badge span {
-  display: block;
-}
-
 .map-stage.picking-start {
   cursor: crosshair;
-}
-
-.map-badge span {
-  margin-top: 2px;
-  color: #526070;
-  font-size: 0.84rem;
 }
 
 .side-panel {
@@ -823,12 +794,6 @@ input[type="range"] {
 
   .map-stage {
     min-height: 360px;
-  }
-
-  .map-badge {
-    top: 12px;
-    left: 12px;
-    padding: 10px;
   }
 
   .side-panel {
