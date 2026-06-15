@@ -90,6 +90,13 @@ function optionIcon(kind: RouteOption["kind"]) {
   return <MapPinned size={16} />;
 }
 
+function scoreLabel(score: number) {
+  if (score >= 75) return "Topmatch";
+  if (score >= 65) return "Sterke match";
+  if (score >= 55) return "Logische optie";
+  return "Alleen als het past";
+}
+
 function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): Highlight {
   return {
     id: `custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`,
@@ -661,7 +668,7 @@ function App() {
                 <div className="score-stack">
                   <span className="score-pill">
                     <Gauge size={15} />
-                    {option.score}/100
+                    {scoreLabel(option.score)}
                   </span>
                   <span className={option.fitsDriveWindow ? "fit good" : "fit warn"}>
                     {option.fitsDriveWindow ? "past" : "ambitieus"}
@@ -670,8 +677,28 @@ function App() {
               </header>
               <h3>{option.title}</h3>
               <p>{option.guideText}</p>
-              <div className="score-panel">
-                <strong>Waarom deze positie</strong>
+              <dl className="stats">
+                <div>
+                  <dt>Rijtijd</dt>
+                  <dd>{formatHours(option.estimatedDriveHours)}</dd>
+                </div>
+                <div>
+                  <dt>Afstand</dt>
+                  <dd>{option.estimatedDistanceKm} km</dd>
+                </div>
+                <div>
+                  <dt>Type</dt>
+                  <dd>{option.activityType}</dd>
+                </div>
+              </dl>
+              <details className="score-panel">
+                <summary>
+                  <span>Waarom deze positie?</span>
+                  <em>Details</em>
+                </summary>
+                <p className="exact-score">
+                  Score {option.score}/100 op basis van rijtijd, spreiding, must-see waarde, EV-risico en reisritme.
+                </p>
                 <p>{option.rankingReason}</p>
                 <p className="route-source">
                   {option.routeSource === "osrm"
@@ -696,21 +723,7 @@ function App() {
                     <li key={note}>{note}</li>
                   ))}
                 </ul>
-              </div>
-              <dl className="stats">
-                <div>
-                  <dt>Rijtijd</dt>
-                  <dd>{formatHours(option.estimatedDriveHours)}</dd>
-                </div>
-                <div>
-                  <dt>Afstand</dt>
-                  <dd>{option.estimatedDistanceKm} km</dd>
-                </div>
-                <div>
-                  <dt>Type</dt>
-                  <dd>{option.activityType}</dd>
-                </div>
-              </dl>
+              </details>
               <div className={`ev-message ${option.evLevel}`}>
                 <BatteryCharging size={16} />
                 {option.evMessage}
@@ -731,15 +744,18 @@ function App() {
                   </button>
                 ))}
               </div>
-              <p className="microcopy"><strong>Wel kiezen:</strong> {option.whenToChoose}</p>
-              <p className="microcopy"><strong>Alternatief:</strong> {option.alternative}</p>
-              {!!option.warnings.length && (
-                <ul className="warnings">
-                  {option.warnings.map((warning) => (
-                    <li key={warning}>{warning}</li>
-                  ))}
-                </ul>
-              )}
+              <details className="more-info">
+                <summary>Wanneer kiezen en waarschuwingen</summary>
+                <p className="microcopy"><strong>Wel kiezen:</strong> {option.whenToChoose}</p>
+                <p className="microcopy"><strong>Alternatief:</strong> {option.alternative}</p>
+                {!!option.warnings.length && (
+                  <ul className="warnings">
+                    {option.warnings.map((warning) => (
+                      <li key={warning}>{warning}</li>
+                    ))}
+                  </ul>
+                )}
+              </details>
             </article>
           ))}
         </section>

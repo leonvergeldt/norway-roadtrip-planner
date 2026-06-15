@@ -161,7 +161,9 @@ h3 {
 .primary-button,
 .secondary-button,
 .text-button,
-.route-card .stops button {
+.route-card .stops button,
+.score-panel summary,
+.more-info summary {
   border: 0;
 }
 
@@ -530,13 +532,63 @@ input[type="range"] {
   background: #fee2e2;
 }
 
-.score-panel {
+.score-panel,
+.more-info {
   display: grid;
   gap: 8px;
   padding: 10px;
   background: #f8faf9;
   border: 1px solid #e0e7e5;
   border-radius: 7px;
+}
+
+.more-info {
+  background: #ffffff;
+}
+
+.score-panel summary,
+.more-info summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  color: #172033;
+  cursor: pointer;
+  font-size: 0.86rem;
+  font-weight: 900;
+  list-style: none;
+}
+
+.score-panel summary::-webkit-details-marker,
+.more-info summary::-webkit-details-marker {
+  display: none;
+}
+
+.score-panel summary::after,
+.more-info summary::after {
+  content: "+";
+  display: grid;
+  flex: 0 0 24px;
+  width: 24px;
+  height: 24px;
+  place-items: center;
+  color: #0f766e;
+  background: #e7f5f2;
+  border-radius: 50%;
+  font-size: 1rem;
+  line-height: 1;
+}
+
+.score-panel[open] summary::after,
+.more-info[open] summary::after {
+  content: "-";
+}
+
+.score-panel summary em {
+  color: #64748b;
+  font-size: 0.74rem;
+  font-style: normal;
 }
 
 .score-panel strong {
@@ -548,6 +600,11 @@ input[type="range"] {
 .route-source {
   color: #485568;
   font-size: 0.84rem;
+}
+
+.score-panel .exact-score {
+  color: #0f3f3a;
+  font-weight: 800;
 }
 
 .route-source {
@@ -714,6 +771,25 @@ input[type="range"] {
   margin: 0;
 }
 
+.leaflet-popup-content-wrapper {
+  border-radius: 8px;
+}
+
+.leaflet-popup-content {
+  margin: 14px 16px 16px;
+}
+
+.leaflet-popup-close-button {
+  display: grid !important;
+  width: 36px !important;
+  height: 36px !important;
+  place-items: center;
+  color: #172033 !important;
+  font-size: 24px !important;
+  font-weight: 800 !important;
+  line-height: 1 !important;
+}
+
 .text-button {
   min-height: 34px;
   color: #0f766e;
@@ -742,7 +818,7 @@ input[type="range"] {
 
 @media (max-width: 620px) {
   .app-shell {
-    grid-template-rows: 52vh auto;
+    grid-template-rows: 48vh auto;
   }
 
   .map-stage {
@@ -756,7 +832,63 @@ input[type="range"] {
   }
 
   .side-panel {
-    padding: 14px;
+    gap: 10px;
+    padding: 12px;
+  }
+
+  .panel-header {
+    gap: 10px;
+  }
+
+  h1 {
+    font-size: 1.34rem;
+  }
+
+  .connection-pill {
+    font-size: 0.7rem;
+  }
+
+  .control-section {
+    padding: 12px;
+  }
+
+  .ev-box,
+  .options-section > .section-title {
+    display: none;
+  }
+
+  .route-card {
+    gap: 9px;
+    padding: 12px;
+  }
+
+  .route-card > p {
+    font-size: 0.84rem;
+  }
+
+  .score-stack {
+    gap: 4px;
+  }
+
+  .score-pill,
+  .fit,
+  .kind-chip {
+    min-height: 24px;
+    padding: 3px 7px;
+    font-size: 0.72rem;
+  }
+
+  .ev-message {
+    padding: 8px;
+    font-size: 0.78rem;
+  }
+
+  .leaflet-popup {
+    margin-bottom: 18px;
+  }
+
+  .leaflet-popup-content {
+    width: min(260px, calc(100vw - 58px)) !important;
   }
 
   .segmented,
