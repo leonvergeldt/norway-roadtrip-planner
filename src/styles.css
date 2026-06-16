@@ -48,6 +48,113 @@ button {
   z-index: 1;
 }
 
+.map-tools {
+  position: absolute;
+  top: 14px;
+  right: 14px;
+  z-index: 500;
+  display: grid;
+  gap: 8px;
+  width: min(340px, calc(100% - 28px));
+  pointer-events: auto;
+}
+
+.map-search-widget {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) 28px;
+  gap: 8px;
+  align-items: center;
+  min-height: 42px;
+  padding: 0 8px 0 11px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe4e0;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(23, 32, 51, 0.14);
+  backdrop-filter: blur(8px);
+}
+
+.map-search-widget svg {
+  color: #64748b;
+}
+
+.map-search-widget input {
+  min-width: 0;
+}
+
+.map-clear-button {
+  display: grid;
+  width: 28px;
+  height: 28px;
+  place-items: center;
+  color: #64748b;
+  background: #eef3f1;
+  border: 0;
+  border-radius: 50%;
+  font-size: 1.1rem;
+  line-height: 1;
+}
+
+.map-search-results,
+.map-cache-message {
+  display: grid;
+  gap: 5px;
+  padding: 6px;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe4e0;
+  border-radius: 8px;
+  box-shadow: 0 10px 24px rgba(23, 32, 51, 0.12);
+}
+
+.map-search-results button {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 34px;
+  padding: 7px 9px;
+  color: #172033;
+  background: #f3f6f5;
+  border: 0;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 800;
+  text-align: left;
+}
+
+.map-search-results em {
+  flex: 0 0 auto;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.map-cache-button {
+  justify-self: start;
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  min-height: 36px;
+  padding: 0 10px;
+  color: #172033;
+  background: rgba(255, 255, 255, 0.96);
+  border: 1px solid #dbe4e0;
+  border-radius: 8px;
+  box-shadow: 0 8px 20px rgba(23, 32, 51, 0.12);
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.map-cache-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.map-cache-message {
+  color: #526070;
+  font-size: 0.76rem;
+  line-height: 1.35;
+}
+
 .leaflet-container {
   font: inherit;
   background: #dce7e5;
@@ -1062,6 +1169,22 @@ input[type="range"] {
     inset: 0;
     z-index: 1;
     min-height: 0;
+  }
+
+  .map-tools {
+    top: 10px;
+    right: 10px;
+    left: 52px;
+    width: auto;
+  }
+
+  .map-search-widget {
+    min-height: 40px;
+  }
+
+  .map-cache-button {
+    min-height: 34px;
+    font-size: 0.76rem;
   }
 
   .side-panel {

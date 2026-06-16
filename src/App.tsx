@@ -463,6 +463,44 @@ function App() {
         className={`map-stage ${isPickingStart ? "picking-start" : ""}`}
         aria-label="Interactieve kaart van Noorwegen"
       >
+        <div className="map-tools" onMouseDown={(event) => event.stopPropagation()}>
+          <div className="map-search-widget">
+            <Search size={17} />
+            <input
+              id="map-search"
+              type="search"
+              placeholder="Zoek plek, regio, hike..."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+            {searchQuery && (
+              <button type="button" className="map-clear-button" onClick={() => setSearchQuery("")} aria-label="Wis zoekterm">
+                ×
+              </button>
+            )}
+          </div>
+          {!!searchResults.length && (
+            <div className="map-search-results">
+              {searchResults.map((highlight) => (
+                <button key={highlight.id} type="button" onClick={() => viewHighlight(highlight)}>
+                  <span>{highlight.name}</span>
+                  <em>{highlight.region}</em>
+                </button>
+              ))}
+            </div>
+          )}
+          <button
+            className="map-cache-button"
+            type="button"
+            onClick={prepareOfflineMap}
+            disabled={isCachingMap || !isOnline}
+            title="Bewaar compacte kaartbasis voor offline gebruik"
+          >
+            <Download size={16} />
+            {isCachingMap ? "Opslaan..." : "Kaartbasis"}
+          </button>
+          {offlineMapMessage && <div className="map-cache-message">{offlineMapMessage}</div>}
+        </div>
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
@@ -662,33 +700,6 @@ function App() {
         </header>
 
         <section className="control-section">
-          <label htmlFor="map-search">Zoeken op de kaart</label>
-          <div className="search-box">
-            <Search size={17} />
-            <input
-              id="map-search"
-              type="search"
-              placeholder="Zoek op plek, regio, hike, fjord..."
-              value={searchQuery}
-              onChange={(event) => setSearchQuery(event.target.value)}
-            />
-          </div>
-          {!!searchResults.length && (
-            <div className="search-results">
-              {searchResults.map((highlight) => (
-                <button key={highlight.id} type="button" onClick={() => viewHighlight(highlight)}>
-                  <span>{highlight.name}</span>
-                  <em>{highlight.region}</em>
-                </button>
-              ))}
-            </div>
-          )}
-          {normalizedSearch && !searchResults.length && (
-            <p className="microcopy">Geen highlights gevonden. Probeer een regio, plaatsnaam of activiteit.</p>
-          )}
-        </section>
-
-        <section className="control-section">
           <label htmlFor="current-location">Huidige locatie of regio</label>
           <select
             id="current-location"
@@ -846,21 +857,6 @@ function App() {
               );
             })}
           </div>
-        </section>
-
-        <section className="control-section offline-box">
-          <div className="section-title">
-            <Download size={17} />
-            <h2>Offline kaart</h2>
-          </div>
-          <p className="microcopy">
-            Bewaart een compacte overzichtskaart van Zuid- en Midden-Noorwegen. Detailkaarten blijven vooral werken
-            voor plekken die je online al hebt bekeken.
-          </p>
-          <button className="secondary-button" type="button" onClick={prepareOfflineMap} disabled={isCachingMap || !isOnline}>
-            {isCachingMap ? "Kaart voorbereiden..." : "Bewaar kaartbasis"}
-          </button>
-          {offlineMapMessage && <p className="location-message">{offlineMapMessage}</p>}
         </section>
 
         <section className="control-section ev-box">

@@ -43,6 +43,7 @@ const highlightImages: Record<string, string> = {
   hardangerfjord: imageAsset("photos/hardangerfjord.jpg"),
   latefossen: commonsImage("Låtefossen_2024.jpg"),
   odda: commonsImage("Odda_Marie_nord_i_Sørfjorden.jpg"),
+  voss: commonsImage("Enbm_from_air_summer2006.jpg"),
   bergen: imageAsset("photos/bergen-bryggen.jpg"),
   bryggen: imageAsset("photos/bergen-bryggen.jpg"),
   naeroyfjord: commonsImage("Nærøyfjord-Norway-April-2011.jpg"),
@@ -54,6 +55,9 @@ const highlightImages: Record<string, string> = {
   flydalsjuvet: imageAsset("photos/geirangerfjord.jpg"),
   borgund: imageAsset("photos/borgund-stave-church.jpg"),
   jostedalsbreen: commonsImage("Nigardsbreen-Norway.jpg"),
+  loen: commonsImage("Loen.jpg"),
+  olden: commonsImage("Olden_Norway.jpg"),
+  lovatnet: commonsImage("Lovatnet.jpg"),
   trollstigen: commonsImage("Trollstigen_Norway_2006.JPG"),
   alesund: commonsImage("Summer_Night_-_Alesund,_Norway_-_panoramio.jpg"),
   "atlantic-road": imageAsset("photos/atlantic-road.jpg"),
@@ -62,15 +66,19 @@ const highlightImages: Record<string, string> = {
   holmenkollen: commonsImage("Holmenkollen_kapell_27may2005.jpg"),
   eidsvoll: commonsImage("Eidsvollsbygningen.jpg"),
   "telemark-canal": imageAsset("coast.svg"),
+  rjukan: commonsImage("Rjukan_panorama_IMG_0052.JPG"),
   "gamle-stavanger": commonsImage("Gamle_Stavanger_2017_nördlicher_Teil.jpg"),
   kjerag: commonsImage("A_man_standing_on_Kjeragbolten.jpg"),
+  "trolltunga-trailhead": commonsImage("Trolltunga_2017.jpg"),
   steinsdalsfossen: commonsImage("Steinsdalsfossen.jpg"),
   voringfossen: commonsImage("Vøringsfossen,_Norway.jpg"),
+  gaustatoppen: commonsImage("Gaustatoppen_peak.jpg"),
   floyen: commonsImage("Floyen_night.jpg"),
   troldhaugen: commonsImage("Towards_the_Composer's_Hut_at_Troldhaugen_-_the_home_of_Edvard_Grieg.jpg"),
   "fantoft-stave-church": commonsImage("Bergen,_Fantoft2.jpg"),
   gudvangen: commonsImage("Gudvangen.JPG"),
   undredal: commonsImage("Undredal_from_Sognefjord.jpg"),
+  "heddal-stave-church": commonsImage("Heddal_stavkirke_Notodden.jpg"),
   briksdalsbreen: commonsImage("Briksdalsbreen-Norway.jpg"),
 };
 
@@ -83,6 +91,7 @@ const photoCredits: Record<string, string> = {
   hardangerfjord: "Foto: Hardangerfjord, Wikimedia Commons",
   latefossen: "Foto: Latefossen, Wikimedia Commons",
   odda: "Foto: Odda, Wikimedia Commons",
+  voss: "Foto: Voss, Wikimedia Commons",
   bergen: "Foto: Bryggen, Wikimedia Commons",
   bryggen: "Foto: Bryggen, Wikimedia Commons",
   naeroyfjord: "Foto: Naeroyfjord, Wikimedia Commons",
@@ -94,6 +103,9 @@ const photoCredits: Record<string, string> = {
   flydalsjuvet: "Foto: Geirangerfjord, Wikimedia Commons",
   borgund: "Foto: Borgund stavkirke, Wikimedia Commons",
   jostedalsbreen: "Foto: Nigardsbreen, Wikimedia Commons",
+  loen: "Foto: Loen, Wikimedia Commons",
+  olden: "Foto: Olden, Wikimedia Commons",
+  lovatnet: "Foto: Lovatnet, Wikimedia Commons",
   trollstigen: "Foto: Trollstigen, Wikimedia Commons",
   alesund: "Foto: Alesund, Wikimedia Commons",
   "atlantic-road": "Foto: Atlantic Ocean Road, Wikimedia Commons",
@@ -101,15 +113,19 @@ const photoCredits: Record<string, string> = {
   "ringebu-stave-church": "Foto: Ringebu staafkerk, Wikimedia Commons",
   holmenkollen: "Foto: Holmenkollen, Wikimedia Commons",
   eidsvoll: "Foto: Eidsvollsbygningen, Wikimedia Commons",
+  rjukan: "Foto: Rjukan, Wikimedia Commons",
   "gamle-stavanger": "Foto: Gamle Stavanger, Wikimedia Commons",
   kjerag: "Foto: Kjeragbolten, Wikimedia Commons",
+  "trolltunga-trailhead": "Foto: Trolltunga, Wikimedia Commons",
   steinsdalsfossen: "Foto: Steinsdalsfossen, Wikimedia Commons",
   voringfossen: "Foto: Voringfossen, Wikimedia Commons",
+  gaustatoppen: "Foto: Gaustatoppen, Wikimedia Commons",
   floyen: "Foto: Floyen, Wikimedia Commons",
   troldhaugen: "Foto: Troldhaugen, Wikimedia Commons",
   "fantoft-stave-church": "Foto: Fantoft stavkirke, Wikimedia Commons",
   gudvangen: "Foto: Gudvangen, Wikimedia Commons",
   undredal: "Foto: Undredal, Wikimedia Commons",
+  "heddal-stave-church": "Foto: Heddal staafkerk, Wikimedia Commons",
   briksdalsbreen: "Foto: Briksdalsbreen, Wikimedia Commons",
 };
 
@@ -153,6 +169,54 @@ const customDetails: Record<string, string[]> = {
   vemork: [
     "Vemork heeft inhoud en sfeer: industrieel erfgoed, oorlogsgeschiedenis en een krachtige ligging boven Rjukan.",
     "Het is een sterke keuze voor een dag waarop uitzicht minder zeker is maar je wel iets wilt doen dat blijft hangen.",
+  ],
+  voss: [
+    "Voss is vooral handig als actieve tussenbasis: meer, gondel, watervallen en routes richting Bergen of Flam liggen dicht bij elkaar.",
+    "Kies Voss als je de dag open wilt houden. Het is minder iconisch dan de fjorden, maar praktisch sterk voor boodschappen, laden en een korte outdoorstop.",
+  ],
+  naeroyfjord: [
+    "Naeroyfjord is smal, steil en intiemer dan veel andere fjorden. De ervaring zit in het waterniveau: boot, kayak of rustig kijken vanaf Gudvangen.",
+    "Dit is geen haastige doorreisstop. Plan hem vooral als je bewust een fjordmoment wilt, of als alternatief voor een druk Flam.",
+  ],
+  stegastein: [
+    "Stegastein geeft snel overzicht over Aurlandsfjord: een korte stop met groot effect, vooral bij helder zicht.",
+    "De weg erheen is smal en populair. Ga vroeg of accepteer dat je soms beter doorrijdt naar een rustiger uitzichtpunt.",
+  ],
+  loen: [
+    "Loen is compact maar landschappelijk sterk: fjord, skylift, Lovatnet en Olden liggen allemaal binnen korte afstand.",
+    "Een goede plek om niet te veel te plannen. Bij goed zicht kun je omhoog, bij lagere energie blijf je bij water en dorpen.",
+  ],
+  olden: [
+    "Olden voelt rustiger dan veel bekendere fjordplaatsen en werkt goed als basis voor Briksdalsbreen of Lovatnet.",
+    "Het is vooral logisch als je de Nordfjord-regio wilt vertragen in plaats van meteen door te steken naar Geiranger.",
+  ],
+  lovatnet: [
+    "Lovatnet is een van de plekken waar het tempo vanzelf omlaag gaat: turquoise water, steile wanden en korte stops langs het meer.",
+    "Maak dit geen afvinkmoment. Het is mooier als je ruimte hebt om ergens te zitten, een stuk te rijden en weer te stoppen.",
+  ],
+  trollstigen: [
+    "Trollstigen is een spectaculaire bergweg, maar ook een plek waar seizoen, onderhoud en weer de dag kunnen bepalen.",
+    "Alleen logisch als de weg open is en je noordelijke lus nog lucht heeft. Bij twijfel is Valldal of Gudbrandsjuvet de mildere keuze.",
+  ],
+  rjukan: [
+    "Rjukan ligt diep tussen de bergen en voelt anders dan de fjorden: industrieel erfgoed, Gaustatoppen en oorlogsgeschiedenis liggen dicht bij elkaar.",
+    "Sterk als zuidelijke terugroute. Het geeft de reis inhoud zonder dat je afhankelijk bent van perfect fjordweer.",
+  ],
+  gaustatoppen: [
+    "Gaustatoppen is een echte weerskeuze: bij helder zicht groots, bij wolken vooral een lange omweg.",
+    "Gebruik hem als actieve of scenic bonus in Telemark, niet als verplichte stop wanneer de rit al vol zit.",
+  ],
+  lillehammer: [
+    "Lillehammer is een rustige overgang tussen bergwegen en Oslo-richting: overzichtelijk centrum, Mjosa dichtbij en goede voorzieningen.",
+    "Logisch als overnachtingsplek na Gudbrandsdalen. Het voorkomt dat de terugweg ineens een lange snelwegdag wordt.",
+  ],
+  maihaugen: [
+    "Maihaugen geeft context aan al die houten huizen en dalen onderweg: openluchtmuseum, oude gebouwen en Noorse leefgeschiedenis.",
+    "Goed bij wisselvallig weer of als je een culturele dag wilt zonder grote stad in te rijden.",
+  ],
+  oslo: [
+    "Oslo werkt vooral als eindpunt of bewuste rustdag: musea, fjordfront, eten en OV maken de stad makkelijk zonder auto.",
+    "Niet behandelen als snelle tussenstop. Parkeren, stadsdrukte en keuzes kosten meer aandacht dan bij kleinere plaatsen.",
   ],
 };
 
