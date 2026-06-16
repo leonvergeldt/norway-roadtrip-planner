@@ -61,6 +61,7 @@ export interface PlannerSettings {
   tripDirection: TripDirection;
   enabledCategories: Category[];
   ev: EvSettings;
+  priorityHighlightIds: string[];
   recentlyViewedHighlightIds: string[];
   savedTodayOptionId?: string;
 }

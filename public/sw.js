@@ -1,4 +1,4 @@
-const APP_CACHE = "norway-planner-app-v3";
+const APP_CACHE = "norway-planner-app-v4";
 const RUNTIME_CACHE = "norway-planner-runtime-v1";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
@@ -16,6 +16,12 @@ const APP_SHELL = [
   `${BASE_PATH}images/scenic-road.svg`,
   `${BASE_PATH}images/stave-church.svg`,
   `${BASE_PATH}images/waterfall.svg`,
+  `${BASE_PATH}images/photos/atlantic-road.jpg`,
+  `${BASE_PATH}images/photos/bergen-bryggen.jpg`,
+  `${BASE_PATH}images/photos/borgund-stave-church.jpg`,
+  `${BASE_PATH}images/photos/geirangerfjord.jpg`,
+  `${BASE_PATH}images/photos/hardangerfjord.jpg`,
+  `${BASE_PATH}images/photos/preikestolen.jpg`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -40,10 +46,12 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
-  if (event.data?.type !== "CACHE_URLS" || !Array.isArray(event.data.urls)) return;
+  if (!Array.isArray(event.data?.urls)) return;
+  const cacheName = event.data.type === "CACHE_TILES" ? TILE_CACHE : APP_CACHE;
+  if (event.data.type !== "CACHE_URLS" && event.data.type !== "CACHE_TILES") return;
 
   event.waitUntil(
-    caches.open(APP_CACHE).then((cache) =>
+    caches.open(cacheName).then((cache) =>
       Promise.allSettled(
         event.data.urls.map((url) =>
           cache.add(url).catch(() => {
@@ -71,8 +79,8 @@ self.addEventListener("fetch", (event) => {
     return;
   }
 
-  if (url.hostname === "tile.openstreetmap.org") {
-    event.respondWith(cacheFirst(request, TILE_CACHE, 260));
+  if (url.hostname === "tile.openstreetmap.org" || url.hostname.endsWith(".tile.openstreetmap.org")) {
+    event.respondWith(cacheFirst(request, TILE_CACHE, 420));
     return;
   }
   if ((url.hostname === "commons.wikimedia.org" || url.hostname === "upload.wikimedia.org") && request.destination === "image") {

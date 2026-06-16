@@ -3,6 +3,7 @@ import { getRoadRouteEstimate } from "./routingService";
 import type { EvSettings, Highlight, RouteOption, RouteOptionKind, TravelStyle, TripDirection } from "../types";
 
 const AVERAGE_ROAD_SPEED_KMH = 68;
+const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 5.2;
 
 const regionProgress: Record<string, number> = {
   Sorlandet: 0,
@@ -20,6 +21,11 @@ const regionProgress: Record<string, number> = {
   Romsdal: 88,
   "Atlantic Road": 94,
   Telemark: 14,
+  Gudbrandsdal: 70,
+  Gudbrandsdalen: 66,
+  Lillehammer: 38,
+  Mjosa: 28,
+  Oslo: 18,
 };
 
 function toRadians(value: number) {
@@ -111,6 +117,10 @@ function importanceScore(highlight: Highlight) {
   return 0;
 }
 
+function personalPriorityScore(highlight: Highlight, priorityHighlightIds: string[]) {
+  return priorityHighlightIds.includes(highlight.id) ? 7 : 0;
+}
+
 function routeEvMessage(distance: number, ev: EvSettings, mountainRoute: boolean) {
   const usableRange =
     ev.practicalRangeKm *
@@ -173,12 +183,13 @@ function scoreActivitySpread(stops: Highlight[], dayStyle: TravelStyle, kind: Ro
   return clampScore(categoryScore + styleScoreValue + shortDayBonus - overloadPenalty - rainyHikePenalty);
 }
 
-function scoreMustSee(stops: Highlight[]) {
+function scoreMustSee(stops: Highlight[], priorityHighlightIds: string[]) {
   return clampScore(
     stops.reduce((total, stop) => {
-      if (stop.importance === "must-see") return total + 42;
-      if (stop.importance === "aanbevolen") return total + 22;
-      return total + 8;
+      const priorityBonus = priorityHighlightIds.includes(stop.id) ? 28 : 0;
+      if (stop.importance === "must-see") return total + 42 + priorityBonus;
+      if (stop.importance === "aanbevolen") return total + 22 + priorityBonus;
+      return total + 8 + priorityBonus;
     }, 0),
   );
 }
@@ -222,10 +233,12 @@ function explainScore(
     maxDriveHours: number;
     stops: Highlight[];
     evLevel: RouteOption["evLevel"];
+    priorityHighlightIds: string[];
   },
 ) {
   const notes: string[] = [];
   const mustSeeStops = option.stops.filter((stop) => stop.importance === "must-see");
+  const priorityStops = option.stops.filter((stop) => option.priorityHighlightIds.includes(stop.id));
 
   notes.push(
     breakdown.driveTime >= 78
@@ -241,6 +254,11 @@ function explainScore(
     mustSeeStops.length
       ? `Must-see waarde is hoog door ${mustSeeStops.map((stop) => stop.name).join(", ")}.`
       : "Geen must-see in deze optie; dat maakt hem flexibeler maar minder prioritair.",
+  );
+  notes.push(
+    priorityStops.length
+      ? `Persoonlijke prioriteit telt mee door ${priorityStops.map((stop) => stop.name).join(", ")}.`
+      : "Geen gemarkeerde zekerheid in deze optie; daardoor krijgt hij geen persoonlijke bonus.",
   );
   notes.push(
     option.evLevel === "ok"
@@ -269,11 +287,12 @@ function calculateOptionScore(
   evLevel: RouteOption["evLevel"],
   current: Highlight,
   tripDirection: TripDirection,
+  priorityHighlightIds: string[],
 ) {
   const scoreBreakdown = {
     driveTime: scoreDriveTime(estimatedDriveHours, maxDriveHours, kind),
     activitySpread: scoreActivitySpread(stops, dayStyle, kind),
-    mustSee: scoreMustSee(stops),
+    mustSee: scoreMustSee(stops, priorityHighlightIds),
     evRisk: scoreEvRisk(evLevel, estimatedDistanceKm, ev),
     rhythm: scoreRhythm(kind, estimatedDriveHours, maxDriveHours, stops, dayStyle, current, tripDirection),
   };
@@ -290,6 +309,7 @@ function calculateOptionScore(
     maxDriveHours,
     stops,
     evLevel,
+    priorityHighlightIds,
   });
   if (tripDirection !== "flexible") {
     scoreNotes.push(
@@ -308,8 +328,15 @@ function calculateOptionScore(
   return { score, scoreBreakdown, scoreNotes, rankingReason };
 }
 
-function pickCandidates(current: Highlight, style: TravelStyle, maxDriveHours: number, tripDirection: TripDirection) {
+function pickCandidates(
+  current: Highlight,
+  style: TravelStyle,
+  maxDriveHours: number,
+  tripDirection: TripDirection,
+  priorityHighlightIds: string[] = [],
+) {
   const maxDistance = maxDriveHours * AVERAGE_ROAD_SPEED_KMH;
+  const softMaxHours = Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2);
 
   return highlights
     .filter((item) => item.id !== current.id)
@@ -319,11 +346,14 @@ function pickCandidates(current: Highlight, style: TravelStyle, maxDriveHours: n
       const score =
         styleScore(highlight, style) +
         importanceScore(highlight) +
+        personalPriorityScore(highlight, priorityHighlightIds) +
         Math.max(0, 4 - hours) +
-        (distance <= maxDistance ? 3 : -3) +
+        (hours <= softMaxHours ? 4 : -28) +
+        (distance <= maxDistance ? 3 : -6) +
         directionScore(current, highlight, tripDirection);
       return { highlight, distance, hours, score };
     })
+    .filter((item) => item.hours <= softMaxHours || priorityHighlightIds.includes(item.highlight.id))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -333,11 +363,12 @@ function findByCategory(
   style: TravelStyle,
   maxDriveHours: number,
   tripDirection: TripDirection,
+  priorityHighlightIds: string[] = [],
 ) {
-  const candidates = pickCandidates(current, style, maxDriveHours, tripDirection).filter((item) =>
+  const candidates = pickCandidates(current, style, maxDriveHours, tripDirection, priorityHighlightIds).filter((item) =>
     categories.includes(item.highlight.category),
   );
-  return candidates[0] ?? pickCandidates(current, style, maxDriveHours, tripDirection)[0];
+  return candidates[0] ?? pickCandidates(current, style, maxDriveHours, tripDirection, priorityHighlightIds)[0];
 }
 
 function optionWarnings(
@@ -350,6 +381,9 @@ function optionWarnings(
 
   if (driveHours > maxDriveHours) warnings.push("Ambitieus voor je ingestelde rijtijd.");
   if (driveHours > 4) warnings.push("Veel rijden; alleen logisch als doorreisdag.");
+  if (driveHours > ABSOLUTE_RECOMMENDATION_LIMIT_HOURS) {
+    warnings.push("Te lang voor een normale dagkeuze; splits deze route op met een tussenstop.");
+  }
   if (stops.some((stop) => stop.category === "hike")) {
     warnings.push("Beter alleen bij goed weer en genoeg energie.");
   }
@@ -375,6 +409,7 @@ async function buildOption(
   alternative: string,
   activityType: string,
   tripDirection: TripDirection,
+  priorityHighlightIds: string[],
 ): Promise<RouteOption> {
   const allStops = [target, ...extraStops].filter(
     (stop, index, array) => array.findIndex((item) => item.id === stop.id) === index,
@@ -399,6 +434,7 @@ async function buildOption(
     evStatus.evLevel,
     current,
     tripDirection,
+    priorityHighlightIds,
   );
 
   return {
@@ -433,18 +469,19 @@ export async function generateRouteOptions(
   maxDriveHours: number,
   ev: EvSettings,
   tripDirection: TripDirection = "flexible",
+  priorityHighlightIds: string[] = [],
 ): Promise<RouteOption[]> {
-  const shortPick = pickCandidates(current, "rustig", Math.min(maxDriveHours, 2.2), tripDirection).find(
+  const shortPick = pickCandidates(current, "rustig", Math.min(maxDriveHours, 2.2), tripDirection, priorityHighlightIds).find(
     (item) => item.hours <= Math.min(maxDriveHours, 2.4),
   );
-  const activePick = findByCategory(current, ["hike", "kayak", "viewpoint"], "actief", maxDriveHours, tripDirection);
-  const scenicPick = findByCategory(current, ["scenic_route", "fjord", "viewpoint"], "scenic", maxDriveHours, tripDirection);
-  const transitPick = pickCandidates(current, dayStyle, Math.min(4, maxDriveHours + 0.8), tripDirection).find(
+  const activePick = findByCategory(current, ["hike", "kayak", "viewpoint"], "actief", maxDriveHours, tripDirection, priorityHighlightIds);
+  const scenicPick = findByCategory(current, ["scenic_route", "fjord", "viewpoint"], "scenic", maxDriveHours, tripDirection, priorityHighlightIds);
+  const transitPick = pickCandidates(current, dayStyle, Math.min(4, maxDriveHours + 0.8), tripDirection, priorityHighlightIds).find(
     (item) => item.hours >= Math.min(2, maxDriveHours * 0.65),
   );
-  const badWeatherPick = findByCategory(current, ["city", "stave_church", "scenic_route"], "slechtweer", maxDriveHours, tripDirection);
+  const badWeatherPick = findByCategory(current, ["city", "stave_church", "scenic_route"], "slechtweer", maxDriveHours, tripDirection, priorityHighlightIds);
 
-  const fallback = pickCandidates(current, dayStyle, maxDriveHours, tripDirection)[0];
+  const fallback = pickCandidates(current, dayStyle, maxDriveHours, tripDirection, priorityHighlightIds)[0];
   const shortTarget = shortPick?.highlight ?? fallback.highlight;
   const activeTarget = activePick.highlight;
   const scenicTarget = scenicPick.highlight;
@@ -452,7 +489,7 @@ export async function generateRouteOptions(
   const badWeatherTarget = badWeatherPick.highlight;
 
   const nearbyFor = (target: Highlight, style: TravelStyle) =>
-    pickCandidates(target, style, 1.2, "flexible")
+    pickCandidates(target, style, 1.2, "flexible", priorityHighlightIds)
       .slice(0, 2)
       .map((item) => item.highlight)
       .filter((item) => item.id !== current.id && item.id !== target.id);
@@ -472,6 +509,7 @@ export async function generateRouteOptions(
       `Als dit te weinig richting geeft, neem de scenic optie via ${scenicTarget.name}.`,
       "Rustige stop",
       tripDirection,
+      priorityHighlightIds,
     ),
     buildOption(
       current,
@@ -482,11 +520,12 @@ export async function generateRouteOptions(
       maxDriveHours,
       ev,
       dayStyle,
-      "Deze dag heeft een duidelijk buitenmoment als anker. Je kiest hem omdat je zin hebt in frisse lucht, uitzicht en een bestemming die echt als hoofdmoment voelt.",
+      "Deze dag draait om een duidelijk buitenmoment. Je kiest hem omdat je zin hebt in frisse lucht, uitzicht en een bestemming die echt als hoofdmoment voelt.",
       "Kies dit bij stabiel weer en genoeg energie om de activiteit ontspannen te beleven.",
       `Bij twijfel is ${badWeatherTarget.name} de nuchtere fallback.`,
       "Hike/outdoor",
       tripDirection,
+      priorityHighlightIds,
     ),
     buildOption(
       current,
@@ -502,6 +541,7 @@ export async function generateRouteOptions(
       `Als de lucht dichttrekt, wissel naar de slechtweer-optie rond ${badWeatherTarget.name}.`,
       "Scenic route",
       tripDirection,
+      priorityHighlightIds,
     ),
     buildOption(
       current,
@@ -517,6 +557,7 @@ export async function generateRouteOptions(
       "Blijf waar je bent of kies de korte dag als de dag al vol genoeg voelt.",
       "Doorreis met stop",
       tripDirection,
+      priorityHighlightIds,
     ),
     buildOption(
       current,
@@ -532,6 +573,7 @@ export async function generateRouteOptions(
       `Bij opklaringen kun je alsnog een korte viewpoint-stop toevoegen, bijvoorbeeld ${scenicTarget.name}.`,
       "Regenbestendig",
       tripDirection,
+      priorityHighlightIds,
     ),
   ]);
 
@@ -539,7 +581,14 @@ export async function generateRouteOptions(
   const seenPrimaryTargets = new Set<string>();
   const seenStopSets = new Set<string>();
 
-  for (const option of options.sort((a, b) => b.score - a.score)) {
+  const viableOptions = options.filter((option) => {
+    const hardLimit = option.kind === "doorreis"
+      ? Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2)
+      : Math.min(4.6, maxDriveHours + 0.9);
+    return option.estimatedDriveHours <= hardLimit;
+  });
+
+  for (const option of viableOptions.sort((a, b) => b.score - a.score)) {
     const primaryTarget = option.stops[0]?.highlight.id;
     const stopSet = option.stops.map((stop) => stop.highlight.id).sort().join("|");
     if (!primaryTarget || seenPrimaryTargets.has(primaryTarget) || seenStopSets.has(stopSet)) continue;
@@ -548,5 +597,9 @@ export async function generateRouteOptions(
     deduped.push(option);
   }
 
-  return deduped.length ? deduped : options.sort((a, b) => b.score - a.score);
+  return deduped.length
+    ? deduped
+    : options
+        .filter((option) => option.estimatedDriveHours <= ABSOLUTE_RECOMMENDATION_LIMIT_HOURS)
+        .sort((a, b) => b.score - a.score);
 }

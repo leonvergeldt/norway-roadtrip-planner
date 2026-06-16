@@ -15,6 +15,7 @@ export const defaultSettings: PlannerSettings = {
     minArrivalBatteryPercent: 15,
     maxDistanceWithoutChargingKm: 280,
   },
+  priorityHighlightIds: ["kristiansand", "stavanger", "preikestolen", "bergen", "geiranger"],
   recentlyViewedHighlightIds: [],
 };
 
@@ -38,6 +39,11 @@ function normalizeEnabledCategories(value: Partial<PlannerSettings>["enabledCate
   return enabled.length ? enabled : defaultSettings.enabledCategories;
 }
 
+function normalizeHighlightIds(value: Partial<PlannerSettings>["priorityHighlightIds"]): string[] {
+  const validIds = new Set(highlights.map((highlight) => highlight.id));
+  return value?.filter((id) => validIds.has(id)) ?? defaultSettings.priorityHighlightIds;
+}
+
 export function loadSettings(): PlannerSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -57,6 +63,7 @@ export function loadSettings(): PlannerSettings {
         ...parsed.ev,
       },
       enabledCategories: normalizeEnabledCategories(parsed.enabledCategories),
+      priorityHighlightIds: normalizeHighlightIds(parsed.priorityHighlightIds),
       recentlyViewedHighlightIds: parsed.recentlyViewedHighlightIds ?? [],
       customStart: parsed.customStart,
     };

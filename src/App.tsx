@@ -7,6 +7,7 @@ import {
   ChevronUp,
   CloudRain,
   Compass,
+  Download,
   Flag,
   Gauge,
   LocateFixed,
@@ -15,7 +16,9 @@ import {
   Mountain,
   RotateCcw,
   Route,
+  Search,
   Sparkles,
+  Star,
   Zap,
 } from "lucide-react";
 import { categoryColors, categoryLabels, highlights } from "./data/highlights";
@@ -58,6 +61,17 @@ function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
     if (!points.length) return;
     map.fitBounds(points as [number, number][], { padding: [60, 60], maxZoom: 9 });
   }, [map, selectedOption]);
+
+  return null;
+}
+
+function FocusHighlight({ highlight }: { highlight?: Highlight }) {
+  const map = useMap();
+
+  useEffect(() => {
+    if (!highlight) return;
+    map.flyTo([highlight.lat, highlight.lng], Math.max(map.getZoom(), 8), { duration: 0.65 });
+  }, [highlight, map]);
 
   return null;
 }
@@ -114,6 +128,40 @@ function scoreLabel(score: number) {
   return "Alleen als het past";
 }
 
+function tileUrl(x: number, y: number, z: number) {
+  const subdomain = ["a", "b", "c"][Math.abs(x + y + z) % 3];
+  return `https://${subdomain}.tile.openstreetmap.org/${z}/${x}/${y}.png`;
+}
+
+function lonToTileX(lon: number, z: number) {
+  return Math.floor(((lon + 180) / 360) * 2 ** z);
+}
+
+function latToTileY(lat: number, z: number) {
+  const rad = (lat * Math.PI) / 180;
+  return Math.floor(((1 - Math.log(Math.tan(rad) + 1 / Math.cos(rad)) / Math.PI) / 2) * 2 ** z);
+}
+
+function buildOfflineTileUrls() {
+  const bbox = { north: 63.8, south: 57.7, west: 4.3, east: 11.8 };
+  const urls: string[] = [];
+
+  for (let z = 5; z <= 8; z += 1) {
+    const minX = lonToTileX(bbox.west, z);
+    const maxX = lonToTileX(bbox.east, z);
+    const minY = latToTileY(bbox.north, z);
+    const maxY = latToTileY(bbox.south, z);
+
+    for (let x = minX; x <= maxX; x += 1) {
+      for (let y = minY; y <= maxY; y += 1) {
+        urls.push(tileUrl(x, y, z));
+      }
+    }
+  }
+
+  return urls;
+}
+
 function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): Highlight {
   return {
     id: `custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`,
@@ -144,6 +192,9 @@ function App() {
   const [isLocating, setIsLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | undefined>();
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
+  const [searchQuery, setSearchQuery] = useState("");
+  const [isCachingMap, setIsCachingMap] = useState(false);
+  const [offlineMapMessage, setOfflineMapMessage] = useState<string | undefined>();
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -169,17 +220,54 @@ function App() {
     : selectedDatasetHighlight;
 
   const selectedOption = routeOptions.find((option) => option.id === selectedOptionId);
+  const focusedHighlight =
+    settings.customStart && selectedHighlightId.startsWith("custom-start-")
+      ? currentHighlight
+      : highlights.find((highlight) => highlight.id === selectedHighlightId);
+  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const matchesSearch = (highlight: Highlight) => {
+    if (!normalizedSearch) return true;
+    const haystack = [
+      highlight.name,
+      highlight.region,
+      categoryLabels[highlight.category],
+      highlight.description,
+      highlight.note,
+      ...(highlight.detail ?? []),
+      ...highlight.styles,
+      highlight.importance,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(normalizedSearch);
+  };
 
   const filteredHighlights = useMemo(
     () =>
       highlights.filter(
         (highlight) =>
           settings.enabledCategories.includes(highlight.category) &&
+          matchesSearch(highlight) &&
           (settings.dayStyle !== "slechtweer" ||
             highlight.styles.includes("slechtweer") ||
             ["city", "stave_church", "scenic_route", "viewpoint"].includes(highlight.category)),
       ),
-    [settings.dayStyle, settings.enabledCategories],
+    [normalizedSearch, settings.dayStyle, settings.enabledCategories],
+  );
+  const searchResults = useMemo(
+    () =>
+      normalizedSearch
+        ? highlights
+            .filter(matchesSearch)
+            .sort((a, b) => {
+              const aPriority = settings.priorityHighlightIds.includes(a.id) ? 1 : 0;
+              const bPriority = settings.priorityHighlightIds.includes(b.id) ? 1 : 0;
+              return bPriority - aPriority || a.name.localeCompare(b.name);
+            })
+            .slice(0, 6)
+        : [],
+    [normalizedSearch, settings.priorityHighlightIds],
   );
 
   const routeLine = selectedOption?.routePath?.length
@@ -211,6 +299,47 @@ function App() {
       ? settings.enabledCategories.filter((category) => !categories.includes(category))
       : Array.from(new Set([...settings.enabledCategories, ...categories]));
     updateSettings({ enabledCategories: enabled });
+  }
+
+  function togglePriorityHighlight(highlightId: string) {
+    setSettings((current) => {
+      const isPriority = current.priorityHighlightIds.includes(highlightId);
+      return {
+        ...current,
+        priorityHighlightIds: isPriority
+          ? current.priorityHighlightIds.filter((id) => id !== highlightId)
+          : [highlightId, ...current.priorityHighlightIds],
+        savedTodayOptionId: undefined,
+      };
+    });
+    setRouteOptions([]);
+    setSelectedOptionId(undefined);
+  }
+
+  async function prepareOfflineMap() {
+    setOfflineMapMessage(undefined);
+
+    if (!("serviceWorker" in navigator)) {
+      setOfflineMapMessage("Offline kaartcache werkt niet in deze browser.");
+      return;
+    }
+
+    const registration = await navigator.serviceWorker.ready;
+    const worker = registration.active ?? navigator.serviceWorker.controller;
+    if (!worker) {
+      setOfflineMapMessage("Service worker is nog niet actief. Ververs de app en probeer opnieuw.");
+      return;
+    }
+
+    const urls = buildOfflineTileUrls();
+    setIsCachingMap(true);
+    worker.postMessage({ type: "CACHE_TILES", urls });
+    window.setTimeout(() => {
+      setIsCachingMap(false);
+      setOfflineMapMessage(
+        `${urls.length} kaarttegels voorbereid voor overzichtszoom. Detailtegels werken offline nadat je ze online hebt bekeken.`,
+      );
+    }, 1800);
   }
 
   function setCustomStart(lat: number, lng: number, name = "Geprikt startpunt") {
@@ -288,6 +417,7 @@ function App() {
         settings.maxDriveHours,
         settings.ev,
         settings.tripDirection,
+        settings.priorityHighlightIds,
       );
       setRouteOptions(nextOptions);
       setSelectedOptionId(nextOptions[0]?.id);
@@ -301,6 +431,7 @@ function App() {
     setSettings((current) => ({
       ...defaultSettings,
       ev: current.ev,
+      priorityHighlightIds: current.priorityHighlightIds,
       recentlyViewedHighlightIds: current.recentlyViewedHighlightIds,
     }));
     setRouteOptions([]);
@@ -342,13 +473,14 @@ function App() {
           {filteredHighlights.map((highlight) => {
             const isCurrent = highlight.id === currentHighlight.id;
             const isSelected = highlight.id === selectedHighlightId;
+            const isPriority = settings.priorityHighlightIds.includes(highlight.id);
             return (
               <CircleMarker
                 key={highlight.id}
                 center={[highlight.lat, highlight.lng]}
-                radius={isCurrent ? 12 : isSelected ? 10 : highlight.importance === "must-see" ? 9 : 7}
+                radius={isCurrent ? 12 : isSelected ? 10 : isPriority ? 9 : highlight.importance === "must-see" ? 8 : 7}
                 pathOptions={{
-                  color: isCurrent ? "#111827" : "#ffffff",
+                  color: isCurrent ? "#111827" : isPriority ? "#facc15" : "#ffffff",
                   weight: isCurrent ? 3 : 2,
                   fillColor: categoryColors[highlight.category],
                   fillOpacity: 0.95,
@@ -362,6 +494,7 @@ function App() {
                   <div className="popup">
                     <strong>{highlight.name}</strong>
                     <span>{categoryLabels[highlight.category]} - {highlight.region}</span>
+                    {isPriority && <span className="priority-label">Zeker doen</span>}
                     {highlight.imageUrl && (
                       <>
                         <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
@@ -399,9 +532,19 @@ function App() {
                         )}
                       </details>
                     )}
-                    <button type="button" className="text-button" onClick={() => useAsCurrent(highlight)}>
-                      Gebruik als huidige locatie
-                    </button>
+                    <div className="popup-actions">
+                      <button type="button" className="text-button" onClick={() => useAsCurrent(highlight)}>
+                        Gebruik als huidige locatie
+                      </button>
+                      <button
+                        type="button"
+                        className={isPriority ? "text-button priority active" : "text-button priority"}
+                        onClick={() => togglePriorityHighlight(highlight.id)}
+                      >
+                        <Star size={15} />
+                        {isPriority ? "Zeker doen aan" : "Zeker doen"}
+                      </button>
+                    </div>
                   </div>
                 </Popup>
               </CircleMarker>
@@ -484,6 +627,7 @@ function App() {
           ))}
 
           <FitRoute selectedOption={selectedOption} />
+          <FocusHighlight highlight={focusedHighlight} />
         </MapContainer>
       </section>
 
@@ -516,6 +660,33 @@ function App() {
             <RotateCcw size={18} />
           </button>
         </header>
+
+        <section className="control-section">
+          <label htmlFor="map-search">Zoeken op de kaart</label>
+          <div className="search-box">
+            <Search size={17} />
+            <input
+              id="map-search"
+              type="search"
+              placeholder="Zoek op plek, regio, hike, fjord..."
+              value={searchQuery}
+              onChange={(event) => setSearchQuery(event.target.value)}
+            />
+          </div>
+          {!!searchResults.length && (
+            <div className="search-results">
+              {searchResults.map((highlight) => (
+                <button key={highlight.id} type="button" onClick={() => viewHighlight(highlight)}>
+                  <span>{highlight.name}</span>
+                  <em>{highlight.region}</em>
+                </button>
+              ))}
+            </div>
+          )}
+          {normalizedSearch && !searchResults.length && (
+            <p className="microcopy">Geen highlights gevonden. Probeer een regio, plaatsnaam of activiteit.</p>
+          )}
+        </section>
 
         <section className="control-section">
           <label htmlFor="current-location">Huidige locatie of regio</label>
@@ -588,6 +759,28 @@ function App() {
 
         <section className="control-section">
           <div className="section-title">
+            <Star size={17} />
+            <h2>Zeker doen</h2>
+          </div>
+          <p className="microcopy">
+            Gemarkeerde plekken krijgen prioriteit in de score, maar alleen als ze nog logisch zijn qua rijtijd.
+          </p>
+          <div className="priority-list">
+            {settings.priorityHighlightIds.slice(0, 8).map((id) => {
+              const highlight = highlights.find((item) => item.id === id);
+              if (!highlight) return null;
+              return (
+                <button key={id} type="button" onClick={() => viewHighlight(highlight)}>
+                  <Star size={13} />
+                  {highlight.name}
+                </button>
+              );
+            })}
+          </div>
+        </section>
+
+        <section className="control-section">
+          <div className="section-title">
             <Sparkles size={17} />
             <h2>Dagstijl</h2>
           </div>
@@ -653,6 +846,21 @@ function App() {
               );
             })}
           </div>
+        </section>
+
+        <section className="control-section offline-box">
+          <div className="section-title">
+            <Download size={17} />
+            <h2>Offline kaart</h2>
+          </div>
+          <p className="microcopy">
+            Bewaart een compacte overzichtskaart van Zuid- en Midden-Noorwegen. Detailkaarten blijven vooral werken
+            voor plekken die je online al hebt bekeken.
+          </p>
+          <button className="secondary-button" type="button" onClick={prepareOfflineMap} disabled={isCachingMap || !isOnline}>
+            {isCachingMap ? "Kaart voorbereiden..." : "Bewaar kaartbasis"}
+          </button>
+          {offlineMapMessage && <p className="location-message">{offlineMapMessage}</p>}
         </section>
 
         <section className="control-section ev-box">
@@ -828,6 +1036,12 @@ function App() {
                   <button key={stop.highlight.id} type="button" onClick={() => viewHighlight(stop.highlight)}>
                     <span className="stop-main">
                       <strong>{stop.highlight.name}</strong>
+                      {settings.priorityHighlightIds.includes(stop.highlight.id) && (
+                        <em>
+                          <Star size={13} />
+                          Zeker doen
+                        </em>
+                      )}
                       {hasNavigationTarget(stop.highlight) && (
                         <em>
                           <Flag size={13} />
