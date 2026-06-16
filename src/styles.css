@@ -302,6 +302,10 @@ input[type="range"] {
   border-color: #0f766e;
 }
 
+.direction-segmented {
+  grid-template-columns: repeat(3, 1fr);
+}
+
 .layer-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
@@ -1142,6 +1146,10 @@ input[type="range"] {
   .score-grid,
   .stats {
     grid-template-columns: 1fr;
+  }
+
+  .direction-segmented {
+    grid-template-columns: repeat(3, 1fr);
   }
 
   .action-row {

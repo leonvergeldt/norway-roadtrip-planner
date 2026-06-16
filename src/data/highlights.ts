@@ -58,57 +58,57 @@ const highlightImages: Record<string, string> = {
 
 const customDetails: Record<string, string[]> = {
   kristiansand: [
-    "Kristiansand werkt vooral als rustige landing in Noorwegen: compact centrum, havengevoel en genoeg voorzieningen om de eerste keuzes niet meteen zwaar te maken.",
-    "Voor een flexibele EV-roadtrip is dit een goede plek om boodschappen, laden en tempo te regelen voordat de westkust en fjorden serieuzer worden.",
+    "Kristiansand is een zachte landing in Noorwegen: zee, houten huizen, een compacte havenstad en genoeg ruimte om rustig in de reis te komen.",
+    "Het is een fijne plek om de eerste boodschappen te doen, even te wennen aan het Noorse tempo en pas daarna te kiezen hoe snel je westwaarts wilt.",
   ],
   stavanger: [
-    "Stavanger combineert oude houten straten, haven, street art en musea met een praktische ligging bij Lysefjord. Het is een van de beste plekken om een actieve dag en een rustige stad-dag naast elkaar open te houden.",
-    "Bij goed weer is dit de springplank naar Preikestolen of fjordroutes; bij regen kun je zonder spijt in de stad blijven en later alsnog doorschuiven.",
+    "Stavanger voelt als een goed basiskamp zonder zwaar te worden: witte houten straatjes, havenlucht, street art en musea liggen dicht bij elkaar.",
+    "Het mooie is de keuzevrijheid. Bij helder weer lonkt Lysefjord, bij regen kun je zonder spijt in de stad blijven en later weer verder schuiven.",
   ],
   preikestolen: [
-    "Preikestolen is interessant omdat de beloning heel helder is: een relatief overzichtelijke hike naar een rotsplateau hoog boven Lysefjord. Het voelt iconisch, maar de dag staat of valt met zicht, wind en drukte.",
-    "Plan dit niet als gewone tussenstop. Start vroeg, houd marge voor parkeren en kies een alternatief als lage wolken of vermoeidheid de hike minder leuk maken.",
+    "Preikestolen is zo'n plek waar het landschap in een keer groot wordt: een breed rotsplateau, stilte boven de fjord en die diepe blauwe snede van Lysefjord onder je.",
+    "Maak er een bewuste hoofdmoment-dag van. Vroeg starten en helder zicht maken deze plek veel mooier dan hem haastig als tussenstop meenemen.",
   ],
   bergen: [
-    "Bergen is een logische ankerstad omdat cultuur, eten, historie en uitzichtpunten dicht bij elkaar liggen. De stad blijft bruikbaar als het weer omslaat, wat in West-Noorwegen geen detail is.",
-    "Voor flexibel reizen is Bergen vooral handig als reset: was doen, laden, slechtweerprogramma, of juist snel omhoog naar Floyen/Ulriken als het even openbreekt.",
+    "Bergen is een ankerstad voor de westkust: steegjes, kades, vismarkt, regenjassen, koffie en uitzichtpunten liggen allemaal binnen handbereik.",
+    "Juist op een flexibele reis is Bergen waardevol. Je kunt er opladen, rondslenteren, slecht weer opvangen of bij een open moment snel de hoogte in.",
   ],
   hardangerfjord: [
-    "Hardangerfjord is minder één punt dan een gebied om langzaam doorheen te bewegen: fruitdorpen, watervallen, fjordarmen en korte stops liggen logisch langs de route.",
-    "Dit is een goede zone om een extra nacht te nemen als het tempo omlaag mag. EV-technisch blijft het verstandig om bergritten en omwegen met marge te plannen.",
+    "Hardangerfjord is geen losse attractie maar een gebied om langzaam in te zakken: fruitdorpen, watervallen, groene hellingen en fjordarmen wisselen elkaar rustig af.",
+    "Dit is een goede streek om niet te strak te plannen. Als het bevalt, is een extra nacht hier vaak waardevoller dan nog een stop afvinken.",
   ],
   flam: [
-    "Flam is toeristisch, maar praktisch: kade, trein, fjordcruise en routes richting Aurland en Naeroyfjord komen hier samen.",
-    "Gebruik Flam vooral als logistiek knooppunt. Als het druk voelt, kijk naar Aurland, Undredal of Gudvangen als rustiger tegengewicht.",
+    "Flam is drukker en praktischer dan romantisch, maar de ligging is sterk: trein, fjord, kade en routes naar Aurland en Naeroyfjord komen hier samen.",
+    "Gebruik het als handig knooppunt. Als het te vol voelt, geven Aurland, Undredal of Gudvangen dezelfde fjordwereld met wat meer ademruimte.",
   ],
   geiranger: [
-    "Geiranger is een van de meest dramatische fjordlandschappen van de reis. De combinatie van water, steile bergwanden, haarspeldwegen en uitzichtpunten maakt het meer dan één losse stop.",
-    "Tegelijk vraagt dit gebied marge: wegen zijn traag, zicht kan snel veranderen en ferrykeuzes bepalen het dagritme. Niet proppen, liever bewust kiezen.",
+    "Geiranger is het dramatische fjordbeeld in volle sterkte: steile wanden, haarspeldwegen, watervallen en water dat diep tussen de bergen ligt.",
+    "Dit gebied verdient rust in de planning. Kies liever een paar goede momenten met zicht dan een dag waarin alles net te snel achter elkaar komt.",
   ],
   "atlantic-road": [
-    "Atlantic Road is spectaculair als kustervaring, maar ligt noordelijk genoeg om de 16-daagse route onder druk te zetten.",
-    "Zie dit als ambitieuze bonus, niet als stille must-see. Alleen logisch als Geiranger en de noordelijke route soepel lopen en je bereid bent flexibiliteit in te leveren.",
+    "Atlantic Road is een ruige kustbonus: bruggen, open zee en een heel ander Noorwegen dan de fjorden rond Bergen en Geiranger.",
+    "Zie dit als een bewuste noordelijke extra, niet als stille verplichting. Alleen doen als de reis tot dan toe soepel loopt en je nog ruimte over hebt.",
   ],
   "telemark-canal": [
-    "Het Telemarkkanaal geeft een heel ander Noorwegen-gevoel dan de fjorden: rustiger binnenland, sluizen, meren en historische vaarroute.",
-    "Dit is vooral waardevol als zuidelijke fallback of langzame terugroute. Minder spectaculair dan Geiranger, maar vaak prettiger bij vermoeidheid of slechter bergweer.",
+    "Het Telemarkkanaal brengt een rustiger Noorwegen: sluizen, meren, bos en historische waterwegen in plaats van hoge fjordwanden.",
+    "Het past mooi als zuidelijke terugroute of zachte fallback wanneer de westelijke bergen te nat, te druk of te intens voelen.",
   ],
   vemork: [
-    "Vemork is inhoudelijk sterk: industrieel erfgoed, oorlogsgeschiedenis en de ligging boven Rjukan geven de stop meer gewicht dan een gewone museumkeuze.",
-    "Het past goed bij slecht weer of als je in Telemark een dag wilt die minder afhankelijk is van uitzicht en wandelenergie.",
+    "Vemork heeft inhoud en sfeer: industrieel erfgoed, oorlogsgeschiedenis en een krachtige ligging boven Rjukan.",
+    "Het is een sterke keuze voor een dag waarop uitzicht minder zeker is maar je wel iets wilt doen dat blijft hangen.",
   ],
 };
 
 function categoryDetail(highlight: Highlight) {
   const categoryText: Record<Category, string> = {
-    city: `${highlight.name} is vooral nuttig als plek waar voorzieningen, cultuur en routekeuzes samenkomen. Dat maakt het geschikt om tempo te resetten zonder de reis stil te zetten.`,
-    fjord: `${highlight.name} draait om landschap en ritme: water, steile wanden en korte keuzes onderweg. Dit soort stop werkt goed als je ruimte wilt houden om langer te blijven.`,
-    hike: `${highlight.name} is interessant als actieve keuze, maar vraagt eerlijkheid over weer, energie en timing. Zie het als hoofdmoment van de dag, niet als bijzaak.`,
-    stave_church: `${highlight.name} geeft een korte cultuurlaag aan een rijdag. Staafkerken zijn compact te bezoeken en werken goed als rustig tegenpunt bij veel natuur.`,
-    kayak: `${highlight.name} is vooral aantrekkelijk als het water en weer meewerken. Plan dit flexibel en houd altijd een droog alternatief achter de hand.`,
-    viewpoint: `${highlight.name} is een goede snelle beslisser: bij goed zicht stoppen, bij mist doorrijden. Uitzichtpunten geven veel gevoel voor weinig tijd.`,
-    scenic_route: `${highlight.name} is geen losse attractie maar een route-ervaring. Reken op langzaam rijden, fotostops en extra marge voor weer of wegstatus.`,
-    ferry_route: `${highlight.name} is vooral logistiek waardevol. Ferry's, kades en routepunten kunnen een dag mooi maken, maar vragen actuele timing.`,
+    city: `${highlight.name} geeft de reis een menselijk anker: even dwalen, koffie, cultuur en keuzes maken zonder dat alles om uitzicht of wandelenergie draait.`,
+    fjord: `${highlight.name} draait om kijken, stoppen en vertragen. Water, wanden en licht bepalen hier vaak meer dan een strak plan.`,
+    hike: `${highlight.name} is vooral mooi als je er echt zin en ruimte voor hebt. Maak het een hoofdmoment van de dag, niet iets dat er nog even bij moet.`,
+    stave_church: `${highlight.name} voegt een stille cultuurlaag toe aan alle natuur. Kort, bijzonder en vaak precies genoeg voor een rustig moment onderweg.`,
+    kayak: `${highlight.name} is een keuze voor nabijheid tot het water. Als weer en energie kloppen, kan dit een van de meest ontspannen manieren zijn om een fjord te beleven.`,
+    viewpoint: `${highlight.name} is een snelle stemmingsmeter: bij open lucht stoppen en genieten, bij dichte wolken zonder spijt verder.`,
+    scenic_route: `${highlight.name} is een routegevoel meer dan een losse bestemming. Laat ruimte voor fotostops, kleine omwegen en het simpele plezier van mooi onderweg zijn.`,
+    ferry_route: `${highlight.name} kan een dag karakter geven: wachten aan de kade, langzaam oversteken en de route even vanaf het water bekijken. Check wel altijd actuele tijden.`,
   };
 
   return categoryText[highlight.category];
@@ -1490,6 +1490,6 @@ export const highlights: Highlight[] = rawHighlights.map((highlight) => ({
   detail: buildDetail(highlight),
   imageUrl: highlightImages[highlight.id] ?? categoryImages[highlight.category],
   imageAlt: `Sfeerbeeld bij ${highlight.name}`,
-  imageCredit: "Lokaal sfeerbeeld",
+  imageCredit: "Offline sfeerbeeld",
   ...navigationTargets[highlight.id],
 }));

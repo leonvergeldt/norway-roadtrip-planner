@@ -19,6 +19,8 @@ export type TravelStyle =
   | "scenic"
   | "slechtweer";
 
+export type TripDirection = "outbound" | "flexible" | "returning";
+
 export interface Highlight {
   id: string;
   name: string;
@@ -57,6 +59,7 @@ export interface PlannerSettings {
   };
   dayStyle: TravelStyle;
   maxDriveHours: number;
+  tripDirection: TripDirection;
   enabledCategories: Category[];
   ev: EvSettings;
   recentlyViewedHighlightIds: string[];

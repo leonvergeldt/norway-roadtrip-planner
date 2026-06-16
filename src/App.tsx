@@ -21,13 +21,19 @@ import {
 import { categoryColors, categoryLabels, highlights } from "./data/highlights";
 import { generateRouteOptions } from "./lib/routeLogic";
 import { defaultSettings, loadSettings, saveSettings } from "./lib/storage";
-import type { Category, Highlight, PlannerSettings, RouteOption, TravelStyle } from "./types";
+import type { Category, Highlight, PlannerSettings, RouteOption, TravelStyle, TripDirection } from "./types";
 
 const dayStyles: Array<{ value: TravelStyle; label: string }> = [
   { value: "rustig", label: "Rustig" },
   { value: "actief", label: "Actief" },
   { value: "scenic", label: "Natuur/scenic" },
   { value: "slechtweer", label: "Stad/regen" },
+];
+
+const tripDirections: Array<{ value: TripDirection; label: string }> = [
+  { value: "outbound", label: "Heen/noord" },
+  { value: "flexible", label: "Vrij" },
+  { value: "returning", label: "Terug" },
 ];
 
 const mapLayerGroups: Array<{
@@ -282,6 +288,7 @@ function App() {
         settings.dayStyle,
         settings.maxDriveHours,
         settings.ev,
+        settings.tripDirection,
       );
       setRouteOptions(nextOptions);
       setSelectedOptionId(nextOptions[0]?.id);
@@ -326,7 +333,7 @@ function App() {
         className={`map-stage ${isPickingStart ? "picking-start" : ""}`}
         aria-label="Interactieve kaart van Noorwegen"
       >
-        <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={12} className="map">
+        <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -489,7 +496,7 @@ function App() {
           <span>{isPanelCollapsed ? "Planner openen" : "Kaart groter"}</span>
           <em>
             {currentHighlight.name}
-            {routeOptions.length ? ` · ${routeOptions.length} opties` : ""}
+            {routeOptions.length ? ` - ${routeOptions.length} opties` : ""}
           </em>
         </button>
         <div className="panel-content">
@@ -594,6 +601,25 @@ function App() {
               </button>
             ))}
           </div>
+        </section>
+        <section className="control-section">
+          <div className="section-title">
+            <Compass size={17} />
+            <h2>Reisfase</h2>
+          </div>
+          <div className="segmented direction-segmented">
+            {tripDirections.map((direction) => (
+              <button
+                key={direction.value}
+                type="button"
+                className={settings.tripDirection === direction.value ? "active" : ""}
+                onClick={() => updateSettings({ tripDirection: direction.value })}
+              >
+                {direction.label}
+              </button>
+            ))}
+          </div>
+          <p className="microcopy">Gebruik Heen/noord tot Geiranger of Atlantic Road; zet Terug aan zodra Oslo, Telemark of Kristiansand weer logisch wordt.</p>
         </section>
 
         <section className="control-section">

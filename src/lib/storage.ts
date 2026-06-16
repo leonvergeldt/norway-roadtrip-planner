@@ -1,5 +1,5 @@
 import { categoryLabels, highlights } from "../data/highlights";
-import type { PlannerSettings, TravelStyle } from "../types";
+import type { PlannerSettings, TravelStyle, TripDirection } from "../types";
 
 const STORAGE_KEY = "norway-flexible-roadtrip-planner:v1";
 
@@ -7,6 +7,7 @@ export const defaultSettings: PlannerSettings = {
   currentHighlightId: "kristiansand",
   dayStyle: "scenic",
   maxDriveHours: 3,
+  tripDirection: "outbound",
   enabledCategories: Object.keys(categoryLabels) as PlannerSettings["enabledCategories"],
   ev: {
     practicalRangeKm: 420,
@@ -26,6 +27,11 @@ function normalizeDayStyle(dayStyle: Partial<PlannerSettings>["dayStyle"]): Trav
   return defaultSettings.dayStyle;
 }
 
+function normalizeTripDirection(value: Partial<PlannerSettings>["tripDirection"]): TripDirection {
+  if (value === "outbound" || value === "flexible" || value === "returning") return value;
+  return defaultSettings.tripDirection;
+}
+
 export function loadSettings(): PlannerSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -39,6 +45,7 @@ export function loadSettings(): PlannerSettings {
       ...parsed,
       currentHighlightId: highlightExists ? parsed.currentHighlightId! : defaultSettings.currentHighlightId,
       dayStyle: normalizeDayStyle(parsed.dayStyle),
+      tripDirection: normalizeTripDirection(parsed.tripDirection),
       ev: {
         ...defaultSettings.ev,
         ...parsed.ev,
