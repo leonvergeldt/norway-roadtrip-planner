@@ -54,10 +54,17 @@ function estimateDriveHours(distance: number) {
 function routeProgress(highlight: Highlight): number {
   if (regionProgress[highlight.region] !== undefined) return regionProgress[highlight.region];
 
-  const nearest = highlights
-    .filter((item) => item.id !== highlight.id && regionProgress[item.region] !== undefined)
-    .map((item) => ({ item, distance: distanceKm(highlight, item) }))
-    .sort((a, b) => a.distance - b.distance)[0]?.item;
+  let nearest: Highlight | undefined;
+  let nearestDistance = Number.POSITIVE_INFINITY;
+
+  for (const item of highlights) {
+    if (item.id === highlight.id || regionProgress[item.region] === undefined) continue;
+    const distance = distanceKm(highlight, item);
+    if (distance < nearestDistance) {
+      nearest = item;
+      nearestDistance = distance;
+    }
+  }
 
   return nearest ? regionProgress[nearest.region] : 45;
 }
@@ -117,8 +124,8 @@ function importanceScore(highlight: Highlight) {
   return 0;
 }
 
-function personalPriorityScore(highlight: Highlight, priorityHighlightIds: string[]) {
-  return priorityHighlightIds.includes(highlight.id) ? 7 : 0;
+function personalPriorityScore(highlight: Highlight, priorityHighlightIdSet: Set<string>) {
+  return priorityHighlightIdSet.has(highlight.id) ? 7 : 0;
 }
 
 function routeEvMessage(distance: number, ev: EvSettings, mountainRoute: boolean) {
@@ -344,6 +351,7 @@ function pickCandidates(
 ) {
   const maxDistance = maxDriveHours * AVERAGE_ROAD_SPEED_KMH;
   const softMaxHours = Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2);
+  const priorityHighlightIdSet = new Set(priorityHighlightIds);
 
   return highlights
     .filter((item) => item.id !== current.id)
@@ -353,14 +361,14 @@ function pickCandidates(
       const score =
         styleScore(highlight, style) +
         importanceScore(highlight) +
-        personalPriorityScore(highlight, priorityHighlightIds) +
+        personalPriorityScore(highlight, priorityHighlightIdSet) +
         Math.max(0, 4 - hours) +
         (hours <= softMaxHours ? 4 : -28) +
         (distance <= maxDistance ? 3 : -6) +
         directionScore(current, highlight, tripDirection);
       return { highlight, distance, hours, score };
     })
-    .filter((item) => item.hours <= softMaxHours || priorityHighlightIds.includes(item.highlight.id))
+    .filter((item) => item.hours <= softMaxHours || priorityHighlightIdSet.has(item.highlight.id))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -372,10 +380,9 @@ function findByCategory(
   tripDirection: TripDirection,
   priorityHighlightIds: string[] = [],
 ) {
-  const candidates = pickCandidates(current, style, maxDriveHours, tripDirection, priorityHighlightIds).filter((item) =>
-    categories.includes(item.highlight.category),
-  );
-  return candidates[0] ?? pickCandidates(current, style, maxDriveHours, tripDirection, priorityHighlightIds)[0];
+  const allCandidates = pickCandidates(current, style, maxDriveHours, tripDirection, priorityHighlightIds);
+  const categoryMatch = allCandidates.find((item) => categories.includes(item.highlight.category));
+  return categoryMatch ?? allCandidates[0];
 }
 
 function optionWarnings(

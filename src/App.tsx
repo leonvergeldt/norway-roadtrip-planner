@@ -51,6 +51,9 @@ const mapLayerGroups: Array<{
   { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
 ];
 
+const badWeatherVisibleCategories = new Set<Category>(["city", "stave_church", "scenic_route", "viewpoint"]);
+const highlightById = new Map(highlights.map((highlight) => [highlight.id, highlight]));
+
 const priorityStarIcon = divIcon({
   className: "priority-star-marker",
   html: "&#9733;",
@@ -235,8 +238,16 @@ function App() {
     return () => window.clearTimeout(timeoutId);
   }, [popupHighlightId]);
 
-  const selectedDatasetHighlight =
-    highlights.find((highlight) => highlight.id === settings.currentHighlightId) ?? highlights[0];
+  const priorityHighlightIdSet = useMemo(
+    () => new Set(settings.priorityHighlightIds),
+    [settings.priorityHighlightIds],
+  );
+  const enabledCategorySet = useMemo(
+    () => new Set(settings.enabledCategories),
+    [settings.enabledCategories],
+  );
+
+  const selectedDatasetHighlight = highlightById.get(settings.currentHighlightId) ?? highlights[0];
   const currentHighlight = settings.customStart
     ? makeCustomStart(settings.customStart.lat, settings.customStart.lng, settings.customStart.name)
     : selectedDatasetHighlight;
@@ -245,7 +256,7 @@ function App() {
   const focusedHighlight =
     settings.customStart && selectedHighlightId.startsWith("custom-start-")
       ? currentHighlight
-      : highlights.find((highlight) => highlight.id === selectedHighlightId);
+      : highlightById.get(selectedHighlightId);
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const matchesSearch = (highlight: Highlight) => {
     if (!normalizedSearch) return true;
@@ -269,13 +280,13 @@ function App() {
     () =>
       highlights.filter(
         (highlight) =>
-          settings.enabledCategories.includes(highlight.category) &&
+          enabledCategorySet.has(highlight.category) &&
           matchesSearch(highlight) &&
           (settings.dayStyle !== "slechtweer" ||
             highlight.styles.includes("slechtweer") ||
-            ["city", "stave_church", "scenic_route", "viewpoint"].includes(highlight.category)),
+            badWeatherVisibleCategories.has(highlight.category)),
       ),
-    [normalizedSearch, settings.dayStyle, settings.enabledCategories],
+    [enabledCategorySet, normalizedSearch, settings.dayStyle],
   );
   const searchResults = useMemo(
     () =>
@@ -283,13 +294,13 @@ function App() {
         ? highlights
             .filter(matchesSearch)
             .sort((a, b) => {
-              const aPriority = settings.priorityHighlightIds.includes(a.id) ? 1 : 0;
-              const bPriority = settings.priorityHighlightIds.includes(b.id) ? 1 : 0;
+              const aPriority = priorityHighlightIdSet.has(a.id) ? 1 : 0;
+              const bPriority = priorityHighlightIdSet.has(b.id) ? 1 : 0;
               return bPriority - aPriority || a.name.localeCompare(b.name);
             })
             .slice(0, 6)
         : [],
-    [normalizedSearch, settings.priorityHighlightIds],
+    [normalizedSearch, priorityHighlightIdSet],
   );
 
   const routeLine = selectedOption?.routePath?.length
@@ -316,7 +327,7 @@ function App() {
   }
 
   function toggleLayerGroup(categories: Category[]) {
-    const allEnabled = categories.every((category) => settings.enabledCategories.includes(category));
+    const allEnabled = categories.every((category) => enabledCategorySet.has(category));
     const enabled = allEnabled
       ? settings.enabledCategories.filter((category) => !categories.includes(category))
       : Array.from(new Set([...settings.enabledCategories, ...categories]));
@@ -578,7 +589,7 @@ function App() {
           {filteredHighlights.map((highlight) => {
             const isCurrent = highlight.id === currentHighlight.id;
             const isSelected = highlight.id === selectedHighlightId;
-            const isPriority = settings.priorityHighlightIds.includes(highlight.id);
+            const isPriority = priorityHighlightIdSet.has(highlight.id);
             return (
               <Fragment key={highlight.id}>
               <CircleMarker
@@ -838,7 +849,7 @@ function App() {
           </p>
           <div className="priority-list">
             {settings.priorityHighlightIds.slice(0, 8).map((id) => {
-              const highlight = highlights.find((item) => item.id === id);
+              const highlight = highlightById.get(id);
               if (!highlight) return null;
               return (
                 <button key={id} type="button" onClick={() => viewHighlight(highlight)}>
@@ -895,7 +906,7 @@ function App() {
           </div>
           <div className="layer-grid">
             {mapLayerGroups.map((layer) => {
-              const isChecked = layer.categories.every((category) => settings.enabledCategories.includes(category));
+              const isChecked = layer.categories.every((category) => enabledCategorySet.has(category));
               const swatch = layer.categories.map((category) => categoryColors[category]);
               return (
                 <label key={layer.id} className="layer-toggle">
@@ -1092,7 +1103,7 @@ function App() {
                   <button key={stop.highlight.id} type="button" onClick={() => viewHighlight(stop.highlight)}>
                     <span className="stop-main">
                       <strong>{stop.highlight.name}</strong>
-                      {settings.priorityHighlightIds.includes(stop.highlight.id) && (
+                      {priorityHighlightIdSet.has(stop.highlight.id) && (
                         <em>
                           <Star size={13} />
                           Zeker doen
