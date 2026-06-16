@@ -1,6 +1,7 @@
-import { Fragment, useEffect, useMemo, useState } from "react";
-import { CircleMarker, MapContainer, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
-import type { LatLngExpression } from "leaflet";
+import { Fragment, useEffect, useMemo, useRef, useState } from "react";
+import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
+import { divIcon } from "leaflet";
+import type { CircleMarker as LeafletCircleMarker, LatLngExpression } from "leaflet";
 import {
   BatteryCharging,
   ChevronDown,
@@ -49,6 +50,13 @@ const mapLayerGroups: Array<{
   { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"] },
   { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
 ];
+
+const priorityStarIcon = divIcon({
+  className: "priority-star-marker",
+  html: "&#9733;",
+  iconSize: [18, 18],
+  iconAnchor: [9, 9],
+});
 
 function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
   const map = useMap();
@@ -183,10 +191,12 @@ function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): 
 }
 
 function App() {
+  const markerRefs = useRef<Record<string, LeafletCircleMarker | null>>({});
   const [settings, setSettings] = useState<PlannerSettings>(() => loadSettings());
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | undefined>(settings.savedTodayOptionId);
   const [selectedHighlightId, setSelectedHighlightId] = useState<string>(settings.currentHighlightId);
+  const [popupHighlightId, setPopupHighlightId] = useState<string | undefined>();
   const [isRouting, setIsRouting] = useState(false);
   const [isPickingStart, setIsPickingStart] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -212,6 +222,17 @@ function App() {
       window.removeEventListener("offline", updateOnlineState);
     };
   }, []);
+
+  useEffect(() => {
+    if (!popupHighlightId) return;
+
+    const timeoutId = window.setTimeout(() => {
+      markerRefs.current[popupHighlightId]?.openPopup();
+      setPopupHighlightId(undefined);
+    }, 450);
+
+    return () => window.clearTimeout(timeoutId);
+  }, [popupHighlightId]);
 
   const selectedDatasetHighlight =
     highlights.find((highlight) => highlight.id === settings.currentHighlightId) ?? highlights[0];
@@ -475,7 +496,7 @@ function App() {
             />
             {searchQuery && (
               <button type="button" className="map-clear-button" onClick={() => setSearchQuery("")} aria-label="Wis zoekterm">
-                ×
+                x
               </button>
             )}
           </div>
@@ -488,6 +509,7 @@ function App() {
                   onClick={() => {
                     viewHighlight(highlight);
                     setSearchQuery("");
+                    setPopupHighlightId(highlight.id);
                   }}
                 >
                   <span>{highlight.name}</span>
@@ -496,6 +518,8 @@ function App() {
               ))}
             </div>
           )}
+        </div>
+        <div className="map-cache-control" onMouseDown={(event) => event.stopPropagation()}>
           <button
             className="map-cache-button"
             type="button"
@@ -520,12 +544,15 @@ function App() {
             const isSelected = highlight.id === selectedHighlightId;
             const isPriority = settings.priorityHighlightIds.includes(highlight.id);
             return (
+              <Fragment key={highlight.id}>
               <CircleMarker
-                key={highlight.id}
+                ref={(marker) => {
+                  markerRefs.current[highlight.id] = marker;
+                }}
                 center={[highlight.lat, highlight.lng]}
-                radius={isCurrent ? 12 : isSelected ? 10 : isPriority ? 9 : highlight.importance === "must-see" ? 8 : 7}
+                radius={isCurrent ? 12 : isSelected ? 10 : highlight.importance === "must-see" ? 8 : 7}
                 pathOptions={{
-                  color: isCurrent ? "#111827" : isPriority ? "#facc15" : "#ffffff",
+                  color: isCurrent ? "#111827" : "#ffffff",
                   weight: isCurrent ? 3 : 2,
                   fillColor: categoryColors[highlight.category],
                   fillOpacity: 0.95,
@@ -593,6 +620,15 @@ function App() {
                   </div>
                 </Popup>
               </CircleMarker>
+              {isPriority && !isCurrent && (
+                <Marker
+                  position={[highlight.lat, highlight.lng]}
+                  icon={priorityStarIcon}
+                  interactive={false}
+                  keyboard={false}
+                />
+              )}
+              </Fragment>
             );
           })}
 

@@ -105,10 +105,10 @@ button {
 
 .map-search-results {
   position: absolute;
-  top: 92px;
+  top: 48px;
   right: 0;
   left: 0;
-  max-height: min(260px, calc(100dvh - 220px));
+  max-height: min(260px, calc(100dvh - 170px));
   overflow-y: auto;
   -webkit-overflow-scrolling: touch;
 }
@@ -136,12 +136,22 @@ button {
   font-style: normal;
 }
 
+.map-cache-control {
+  position: absolute;
+  top: 14px;
+  left: 14px;
+  z-index: 500;
+  display: grid;
+  gap: 8px;
+  justify-items: start;
+  pointer-events: auto;
+}
+
 .map-cache-button {
   justify-self: start;
   display: inline-flex;
   align-items: center;
   gap: 7px;
-  margin-top: 8px;
   min-height: 36px;
   padding: 0 10px;
   color: #172033;
@@ -159,10 +169,25 @@ button {
 }
 
 .map-cache-message {
-  margin-top: 8px;
+  max-width: 220px;
   color: #526070;
   font-size: 0.76rem;
   line-height: 1.35;
+}
+
+.priority-star-marker {
+  display: grid;
+  width: 18px !important;
+  height: 18px !important;
+  place-items: center;
+  color: #facc15;
+  font-size: 15px;
+  line-height: 1;
+  text-shadow:
+    0 1px 2px rgba(17, 24, 39, 0.75),
+    0 0 3px rgba(255, 255, 255, 0.95);
+  transform: translate(7px, -8px);
+  pointer-events: none;
 }
 
 .leaflet-container {
@@ -1184,8 +1209,13 @@ input[type="range"] {
   .map-tools {
     top: 10px;
     right: 10px;
-    left: 52px;
+    left: 118px;
     width: auto;
+  }
+
+  .map-cache-control {
+    top: 10px;
+    left: 10px;
   }
 
   .map-search-widget {
@@ -1194,6 +1224,7 @@ input[type="range"] {
 
   .map-cache-button {
     min-height: 34px;
+    padding: 0 9px;
     font-size: 0.76rem;
   }
 
