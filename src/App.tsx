@@ -126,6 +126,7 @@ function optionIcon(kind: RouteOption["kind"]) {
   if (kind === "scenic") return <Compass size={16} />;
   if (kind === "doorreis") return <Route size={16} />;
   if (kind === "slechtweer") return <CloudRain size={16} />;
+  if (kind === "blijven") return <MapPinned size={16} />;
   return <MapPinned size={16} />;
 }
 
@@ -532,6 +533,41 @@ function App() {
           </button>
           {offlineMapMessage && <div className="map-cache-message">{offlineMapMessage}</div>}
         </div>
+        <div className="map-start-control" onMouseDown={(event) => event.stopPropagation()}>
+          <button
+            className="map-widget-button"
+            type="button"
+            onClick={useGpsAsStart}
+            disabled={isLocating}
+            title="Gebruik de GPS-locatie van dit apparaat als startpunt"
+            aria-label="Gebruik GPS als startpunt"
+          >
+            <LocateFixed size={16} />
+            <span>{isLocating ? "GPS..." : "GPS"}</span>
+          </button>
+          <button
+            className={isPickingStart ? "map-widget-button active" : "map-widget-button"}
+            type="button"
+            onClick={() => setIsPickingStart((current) => !current)}
+            title="Prik een slaapplaats, camping of parkeerplek op de kaart"
+            aria-label="Prik startpunt op de kaart"
+          >
+            <MapPinned size={16} />
+            <span>{isPickingStart ? "Tik kaart" : "Prik start"}</span>
+          </button>
+          {settings.customStart && (
+            <button
+              className="map-widget-button subtle"
+              type="button"
+              onClick={clearCustomStart}
+              title="Wis het geprikte startpunt"
+              aria-label="Wis geprikt startpunt"
+            >
+              x
+            </button>
+          )}
+          {locationMessage && <div className="map-start-message">{locationMessage}</div>}
+        </div>
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
@@ -763,37 +799,18 @@ function App() {
 
           <div className={`custom-start-box ${settings.customStart ? "active" : ""}`}>
             <div>
-              <strong>{settings.customStart ? "Geprikt startpunt actief" : "Start vanaf slaapplaats of parkeerplek"}</strong>
+              <strong>{settings.customStart ? "Eigen startpunt actief" : "Start vanaf slaapplaats of parkeerplek"}</strong>
               <span>
                 {settings.customStart
                   ? `${settings.customStart.lat.toFixed(5)}, ${settings.customStart.lng.toFixed(5)}`
-                  : "Klik op de kaart om een eigen vertrekpunt te gebruiken."}
+                  : "Gebruik de GPS- of prikknop op de kaart voor campings, hotels of spontane overnachtingen."}
               </span>
             </div>
-            <div className="custom-start-actions">
-              <button
-                type="button"
-                className="secondary-button gps-button"
-                onClick={useGpsAsStart}
-                disabled={isLocating}
-              >
-                <LocateFixed size={16} />
-                {isLocating ? "GPS zoeken..." : "Gebruik GPS"}
+            {settings.customStart && (
+              <button type="button" className="text-button" onClick={clearCustomStart}>
+                Terug naar geselecteerde highlight
               </button>
-              <button
-                type="button"
-                className={isPickingStart ? "secondary-button active-picker" : "secondary-button"}
-                onClick={() => setIsPickingStart((current) => !current)}
-              >
-                {isPickingStart ? "Klik op kaart..." : "Punt prikken"}
-              </button>
-              {settings.customStart && (
-                <button type="button" className="secondary-button" onClick={clearCustomStart}>
-                  Wis punt
-                </button>
-              )}
-            </div>
-            {locationMessage && <p className="location-message">{locationMessage}</p>}
+            )}
           </div>
 
           <div className="range-row">

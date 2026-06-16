@@ -161,6 +161,12 @@ function countDistinctCategories(stops: Highlight[]) {
 }
 
 function scoreDriveTime(driveHours: number, maxDriveHours: number, kind: RouteOptionKind) {
+  if (kind === "blijven") {
+    const softLimit = Math.min(1.8, maxDriveHours);
+    const overLimitPenalty = driveHours > softLimit ? (driveHours - softLimit) * 28 : 0;
+    return clampScore(100 - driveHours * 18 - overLimitPenalty);
+  }
+
   const idealHours = kind === "doorreis" ? Math.min(3.4, maxDriveHours + 0.4) : Math.min(2.4, maxDriveHours);
   const difference = Math.abs(driveHours - idealHours);
   const overLimitPenalty = driveHours > maxDriveHours ? (driveHours - maxDriveHours) * 22 : 0;
@@ -178,7 +184,7 @@ function scoreActivitySpread(stops: Highlight[], dayStyle: TravelStyle, kind: Ro
   const overloadPenalty = stops.length > 3 ? 14 : 0;
   const rainyHikePenalty =
     dayStyle === "slechtweer" && stops.some((stop) => stop.category === "hike") ? 24 : 0;
-  const shortDayBonus = kind === "kort" && stops.length <= 2 ? 8 : 0;
+  const shortDayBonus = (kind === "kort" || kind === "blijven") && stops.length <= 2 ? 8 : 0;
 
   return clampScore(categoryScore + styleScoreValue + shortDayBonus - overloadPenalty - rainyHikePenalty);
 }
@@ -216,9 +222,10 @@ function scoreRhythm(
   if (kind === "scenic" && dayStyle === "scenic") score += 18;
   if (kind === "slechtweer" && dayStyle === "slechtweer") score += 20;
   if (kind === "doorreis" && driveHours >= 2 && driveHours <= maxDriveHours + 0.5) score += 10;
+  if (kind === "blijven" && ["rustig", "slechtweer", "scenic"].includes(dayStyle)) score += 20;
   if (stops.some((stop) => stop.category === "hike") && stops.some((stop) => stop.category === "city")) score -= 10;
   if (driveHours > maxDriveHours) score -= 18;
-  if (stops.length === 1) score -= 8;
+  if (stops.length === 1 && kind !== "blijven") score -= 8;
 
   const directionScoreValue = stops[0] ? directionRhythmScore(current, stops[0], tripDirection) : 76;
 
@@ -463,6 +470,81 @@ async function buildOption(
   };
 }
 
+async function buildStayOption(
+  current: Highlight,
+  dayStyle: TravelStyle,
+  maxDriveHours: number,
+  ev: EvSettings,
+  priorityHighlightIds: string[],
+): Promise<RouteOption> {
+  const localStyle = dayStyle === "slechtweer" ? "slechtweer" : dayStyle === "actief" ? "actief" : "rustig";
+  const localStops = pickCandidates(current, localStyle, 1.25, "flexible", priorityHighlightIds)
+    .filter((item) => item.hours <= 1.45)
+    .filter((item) => dayStyle !== "slechtweer" || item.highlight.category !== "hike" || item.highlight.visitTimeHours <= 2.5)
+    .slice(0, dayStyle === "actief" ? 3 : 2)
+    .map((item) => item.highlight);
+  const allStops = localStops.length ? localStops : [current];
+  const fallbackDistanceKm = localStops.length
+    ? Math.round(localStops.reduce((total, stop) => total + distanceKm(current, stop), 0) + Math.max(0, localStops.length - 1) * 12)
+    : 0;
+  const fallbackDriveHours = localStops.length ? Number(estimateDriveHours(fallbackDistanceKm).toFixed(1)) : 0;
+  const routeEstimate = localStops.length
+    ? await getRoadRouteEstimate([current, ...allStops], fallbackDistanceKm, fallbackDriveHours)
+    : {
+        distanceKm: 0,
+        durationHours: 0,
+        source: "estimated" as const,
+        warnings: [] as string[],
+        routePath: undefined,
+      };
+  const mountainRoute = [current, ...allStops].some((stop) =>
+    ["Geiranger", "Jotunheimen", "More og Romsdal", "Jostedalen", "Nordfjord"].includes(stop.region),
+  );
+  const evStatus = routeEvMessage(routeEstimate.distanceKm, ev, mountainRoute);
+  const scoreDetails = calculateOptionScore(
+    "blijven",
+    routeEstimate.durationHours,
+    routeEstimate.distanceKm,
+    allStops,
+    maxDriveHours,
+    dayStyle,
+    ev,
+    evStatus.evLevel,
+    current,
+    "flexible",
+    priorityHighlightIds,
+  );
+
+  return {
+    id: `blijven-${current.id}`,
+    kind: "blijven",
+    title: "Blijf hier nog een dag",
+    guideText: localStops.length
+      ? `Een dag zonder grote verplaatsing rond ${current.name}. Je houdt ruimte voor rust, boodschappen of spontaan weer, met ${localStops.map((stop) => stop.name).join(" en ")} als logische lokale invulling.`
+      : `Een echte rustdag rond ${current.name}. Handig als de omgeving goed voelt, het weer onzeker is of je simpelweg wat lucht in de reis wilt houden.`,
+    rankingReason: "Deze optie scoort op reisritme: weinig rijden, lage EV-druk en ruimte om de plek beter te beleven in plaats van meteen door te schuiven.",
+    whenToChoose: "Kies dit als de plek goed voelt, je moe bent, het weer wisselt of je vandaag liever kwaliteit dan kilometers wilt.",
+    alternative: "Wil je toch vooruit, kies dan de korte dag of scenic optie als zachte verplaatsing.",
+    estimatedDriveHours: routeEstimate.durationHours,
+    estimatedDistanceKm: routeEstimate.distanceKm,
+    routeSource: routeEstimate.source,
+    routePath: routeEstimate.routePath,
+    stops: allStops.map((highlight) => ({
+      highlight,
+      distanceFromStartKm: Math.round(distanceKm(current, highlight)),
+    })),
+    activityType: "Rustdag lokaal",
+    score: clampScore(scoreDetails.score + (dayStyle === "rustig" || dayStyle === "slechtweer" ? 8 : 3)),
+    scoreBreakdown: scoreDetails.scoreBreakdown,
+    scoreNotes: [
+      "Deze optie krijgt bewust ritmebonus omdat niet verplaatsen soms de beste roadtrip-keuze is.",
+      ...scoreDetails.scoreNotes,
+    ],
+    fitsDriveWindow: routeEstimate.durationHours <= maxDriveHours,
+    warnings: routeEstimate.warnings,
+    ...evStatus,
+  };
+}
 export async function generateRouteOptions(
   current: Highlight,
   dayStyle: TravelStyle,
@@ -495,6 +577,7 @@ export async function generateRouteOptions(
       .filter((item) => item.id !== current.id && item.id !== target.id);
 
   const options = await Promise.all([
+    buildStayOption(current, dayStyle, maxDriveHours, ev, priorityHighlightIds),
     buildOption(
       current,
       "kort",
@@ -582,6 +665,7 @@ export async function generateRouteOptions(
   const seenStopSets = new Set<string>();
 
   const viableOptions = options.filter((option) => {
+    if (option.kind === "blijven") return true;
     const hardLimit = option.kind === "doorreis"
       ? Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2)
       : Math.min(4.6, maxDriveHours + 0.9);
@@ -589,6 +673,11 @@ export async function generateRouteOptions(
   });
 
   for (const option of viableOptions.sort((a, b) => b.score - a.score)) {
+    if (option.kind === "blijven") {
+      deduped.push(option);
+      continue;
+    }
+
     const primaryTarget = option.stops[0]?.highlight.id;
     const stopSet = option.stops.map((stop) => stop.highlight.id).sort().join("|");
     if (!primaryTarget || seenPrimaryTargets.has(primaryTarget) || seenStopSets.has(stopSet)) continue;

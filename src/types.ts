@@ -76,7 +76,8 @@ export type RouteOptionKind =
   | "actief"
   | "scenic"
   | "doorreis"
-  | "slechtweer";
+  | "slechtweer"
+  | "blijven";
 
 export interface RouteOption {
   id: string;
