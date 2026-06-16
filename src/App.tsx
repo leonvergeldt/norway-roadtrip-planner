@@ -482,7 +482,14 @@ function App() {
           {!!searchResults.length && (
             <div className="map-search-results">
               {searchResults.map((highlight) => (
-                <button key={highlight.id} type="button" onClick={() => viewHighlight(highlight)}>
+                <button
+                  key={highlight.id}
+                  type="button"
+                  onClick={() => {
+                    viewHighlight(highlight);
+                    setSearchQuery("");
+                  }}
+                >
                   <span>{highlight.name}</span>
                   <em>{highlight.region}</em>
                 </button>
@@ -501,7 +508,7 @@ function App() {
           </button>
           {offlineMapMessage && <div className="map-cache-message">{offlineMapMessage}</div>}
         </div>
-        <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} className="map">
+        <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'

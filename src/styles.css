@@ -53,8 +53,6 @@ button {
   top: 14px;
   right: 14px;
   z-index: 500;
-  display: grid;
-  gap: 8px;
   width: min(340px, calc(100% - 28px));
   pointer-events: auto;
 }
@@ -105,6 +103,16 @@ button {
   box-shadow: 0 10px 24px rgba(23, 32, 51, 0.12);
 }
 
+.map-search-results {
+  position: absolute;
+  top: 92px;
+  right: 0;
+  left: 0;
+  max-height: min(260px, calc(100dvh - 220px));
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+}
+
 .map-search-results button {
   display: flex;
   align-items: center;
@@ -133,6 +141,7 @@ button {
   display: inline-flex;
   align-items: center;
   gap: 7px;
+  margin-top: 8px;
   min-height: 36px;
   padding: 0 10px;
   color: #172033;
@@ -150,6 +159,7 @@ button {
 }
 
 .map-cache-message {
+  margin-top: 8px;
   color: #526070;
   font-size: 0.76rem;
   line-height: 1.35;
