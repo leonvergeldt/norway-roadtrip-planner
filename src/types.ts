@@ -35,6 +35,10 @@ export interface Highlight {
   importance: Importance;
   styles: TravelStyle[];
   note?: string;
+  detail?: string[];
+  imageUrl?: string;
+  imageAlt?: string;
+  imageCredit?: string;
 }
 
 export interface EvSettings {

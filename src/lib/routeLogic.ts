@@ -43,6 +43,11 @@ function styleScore(highlight: Highlight, style: TravelStyle) {
       (highlight.category === "city" ? 2 : 0);
   }
 
+  if (style === "scenic") {
+    return (highlight.styles.includes("scenic") || highlight.styles.includes("natuur") ? 5 : 0) +
+      (["fjord", "viewpoint", "scenic_route"].includes(highlight.category) ? 2 : 0);
+  }
+
   return highlight.styles.includes(style) ? 5 : 0;
 }
 
@@ -102,6 +107,7 @@ function scoreActivitySpread(stops: Highlight[], dayStyle: TravelStyle, kind: Ro
   const categoryScore = Math.min(3, countDistinctCategories(stops)) * 22;
   const styleMatches = stops.filter((stop) => {
     if (dayStyle === "stad") return stop.styles.includes("stad") || stop.styles.includes("cultuur");
+    if (dayStyle === "scenic") return stop.styles.includes("scenic") || stop.styles.includes("natuur");
     return stop.styles.includes(dayStyle);
   }).length;
   const styleScoreValue = Math.min(2, styleMatches) * 14;
@@ -451,5 +457,18 @@ export async function generateRouteOptions(
     ),
   ]);
 
-  return options.sort((a, b) => b.score - a.score);
+  const deduped: RouteOption[] = [];
+  const seenPrimaryTargets = new Set<string>();
+  const seenStopSets = new Set<string>();
+
+  for (const option of options.sort((a, b) => b.score - a.score)) {
+    const primaryTarget = option.stops[0]?.highlight.id;
+    const stopSet = option.stops.map((stop) => stop.highlight.id).sort().join("|");
+    if (!primaryTarget || seenPrimaryTargets.has(primaryTarget) || seenStopSets.has(stopSet)) continue;
+    seenPrimaryTargets.add(primaryTarget);
+    seenStopSets.add(stopSet);
+    deduped.push(option);
+  }
+
+  return deduped.length ? deduped : options.sort((a, b) => b.score - a.score);
 }

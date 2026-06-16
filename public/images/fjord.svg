@@ -1,0 +1,18 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Noorse fjord met bergen">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#9fd3e8"/>
+      <stop offset="1" stop-color="#f4f8f7"/>
+    </linearGradient>
+    <linearGradient id="water" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#4fa3b7"/>
+      <stop offset="1" stop-color="#0f5f73"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 295 160 135l95 135 125-180 150 205 110-135 260 155v205H0Z" fill="#31576a"/>
+  <path d="M0 330 210 175l110 150 115-105 135 125 145-150 185 140v185H0Z" fill="#597884"/>
+  <path d="M0 342h900v178H0Z" fill="url(#water)"/>
+  <path d="M80 390c125-30 235-28 330-4s215 18 335-18" fill="none" stroke="#c9eef2" stroke-width="10" opacity=".45"/>
+  <path d="M130 445c135-22 270-16 405 8 95 16 170 7 250-15" fill="none" stroke="#e7fbff" stroke-width="6" opacity=".38"/>
+</svg>

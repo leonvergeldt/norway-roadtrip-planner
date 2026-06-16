@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Scenische Noorse weg door bergen">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a9cfe3"/>
+      <stop offset="1" stop-color="#f5f7f1"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 310 120 160l120 120 90-170 175 200 110-145 285 160v195H0Z" fill="#657b72"/>
+  <path d="M0 392c160-80 305-104 435-72 90 22 162 78 230 200H430c-42-90-95-122-160-128-77-7-155 34-270 96Z" fill="#4b5563"/>
+  <path d="M345 356c80 30 142 82 193 164" fill="none" stroke="#f7f2d5" stroke-width="7" stroke-dasharray="22 20"/>
+</svg>

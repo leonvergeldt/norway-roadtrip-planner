@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Staafkerk in Noors landschap">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#c5d9e1"/>
+      <stop offset="1" stop-color="#f4f0e6"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 350 180 230l135 80 150-125 180 150 255-100v285H0Z" fill="#74836a"/>
+  <path d="M0 410h900v110H0Z" fill="#36583f"/>
+  <g transform="translate(345 145)">
+    <path d="M105 0 28 112h154Z" fill="#1f2933"/>
+    <path d="M105 45 42 142h126Z" fill="#111827"/>
+    <rect x="58" y="138" width="96" height="140" fill="#3b2a21"/>
+    <path d="M42 138h126l-63-75Z" fill="#261b15"/>
+    <rect x="92" y="200" width="30" height="78" fill="#15100d"/>
+    <path d="M105-48 82 4h46Z" fill="#1f2933"/>
+  </g>
+</svg>

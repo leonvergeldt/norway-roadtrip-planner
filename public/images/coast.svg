@@ -1,0 +1,13 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Noorse kustweg en eilanden">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#a8cfe3"/>
+      <stop offset="1" stop-color="#f4f7f2"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 305h900v215H0Z" fill="#246579"/>
+  <path d="M0 360c110-45 185-52 275-20 85 31 170 18 260-33 96-54 215-45 365 26v187H0Z" fill="#536f62"/>
+  <path d="M120 390c115-25 215-15 300 30 92 48 188 46 288-8" fill="none" stroke="#d9c79d" stroke-width="18" stroke-linecap="round"/>
+  <path d="M130 390c112-21 210-10 292 32 87 44 178 42 272-8" fill="none" stroke="#374151" stroke-width="10" stroke-linecap="round"/>
+</svg>

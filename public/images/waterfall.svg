@@ -1,0 +1,12 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Waterval tussen Noorse bergen">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#b5d7e3"/>
+      <stop offset="1" stop-color="#edf6ee"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 310 175 150l120 125 118-175 160 205 112-100 215 120v195H0Z" fill="#527263"/>
+  <path d="M430 132c-10 75-6 150 12 224 8 32 2 84-18 164h156c-26-86-32-142-17-185 19-58 16-126-8-203Z" fill="#dff6f8" opacity=".9"/>
+  <path d="M0 418c130-24 260-16 390 22 116 34 250 25 410-27v107H0Z" fill="#0f6b7a"/>
+</svg>

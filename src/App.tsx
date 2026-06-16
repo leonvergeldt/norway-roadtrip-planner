@@ -26,10 +26,8 @@ import type { Category, Highlight, PlannerSettings, RouteOption, TravelStyle } f
 const dayStyles: Array<{ value: TravelStyle; label: string }> = [
   { value: "rustig", label: "Rustig" },
   { value: "actief", label: "Actief" },
-  { value: "natuur", label: "Natuur" },
-  { value: "stad", label: "Stad/cultuur" },
-  { value: "scenic", label: "Scenic" },
-  { value: "slechtweer", label: "Slecht weer" },
+  { value: "scenic", label: "Natuur/scenic" },
+  { value: "slechtweer", label: "Stad/regen" },
 ];
 
 const mapLayerGroups: Array<{
@@ -358,6 +356,9 @@ function App() {
                   <div className="popup">
                     <strong>{highlight.name}</strong>
                     <span>{categoryLabels[highlight.category]} - {highlight.region}</span>
+                    {highlight.imageUrl && (
+                      <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
+                    )}
                     <p>{highlight.description}</p>
                     <dl>
                       <div>
@@ -369,6 +370,14 @@ function App() {
                         <dd>{highlight.importance}</dd>
                       </div>
                     </dl>
+                    {!!highlight.detail?.length && (
+                      <details className="popup-details">
+                        <summary>Waarom interessant</summary>
+                        {highlight.detail.map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                      </details>
+                    )}
                     {(highlight.note || highlight.navigationLabel) && (
                       <details className="popup-details">
                         <summary>Praktisch</summary>
@@ -719,6 +728,19 @@ function App() {
               </header>
               <h3>{option.title}</h3>
               <p>{option.guideText}</p>
+              {option.stops[0]?.highlight.imageUrl && (
+                <div className="route-visual">
+                  <img
+                    src={option.stops[0].highlight.imageUrl}
+                    alt={option.stops[0].highlight.imageAlt ?? option.stops[0].highlight.name}
+                    loading="lazy"
+                  />
+                  <div>
+                    <strong>{option.stops[0].highlight.name}</strong>
+                    <p>{option.stops[0].highlight.detail?.[0] ?? option.stops[0].highlight.description}</p>
+                  </div>
+                </div>
+              )}
               <dl className="stats">
                 <div>
                   <dt>Rijtijd</dt>
@@ -786,6 +808,24 @@ function App() {
                   </button>
                 ))}
               </div>
+              <details className="more-info">
+                <summary>Waarom deze stops?</summary>
+                <div className="stop-context-list">
+                  {option.stops.map((stop) => (
+                    <article key={`context-${stop.highlight.id}`} className="stop-context">
+                      {stop.highlight.imageUrl && (
+                        <img src={stop.highlight.imageUrl} alt={stop.highlight.imageAlt ?? stop.highlight.name} loading="lazy" />
+                      )}
+                      <div>
+                        <strong>{stop.highlight.name}</strong>
+                        {(stop.highlight.detail ?? [stop.highlight.description]).slice(0, 2).map((paragraph) => (
+                          <p key={paragraph}>{paragraph}</p>
+                        ))}
+                      </div>
+                    </article>
+                  ))}
+                </div>
+              </details>
               <details className="more-info">
                 <summary>Wanneer kiezen en waarschuwingen</summary>
                 <p className="microcopy"><strong>Wel kiezen:</strong> {option.whenToChoose}</p>

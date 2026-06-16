@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 520" role="img" aria-label="Bergwandeling boven een fjord">
+  <defs>
+    <linearGradient id="sky" x1="0" x2="0" y1="0" y2="1">
+      <stop offset="0" stop-color="#b9ddea"/>
+      <stop offset="1" stop-color="#eef7f2"/>
+    </linearGradient>
+  </defs>
+  <rect width="900" height="520" fill="url(#sky)"/>
+  <path d="M0 330 180 150l100 85 88-120 150 178 80-92 302 155v164H0Z" fill="#5b756b"/>
+  <path d="M0 420 240 260l132 115 120-85 105 95 120-45 183 80v100H0Z" fill="#2f4f45"/>
+  <path d="M535 205h138l44 170-112 2Z" fill="#708074"/>
+  <path d="M570 218h58l-35 150h-92Z" fill="#ece9df"/>
+  <path d="M98 464c115-42 244-64 400-70 88-3 166-18 258-50" fill="none" stroke="#d9c69b" stroke-width="16" stroke-linecap="round"/>
+</svg>
