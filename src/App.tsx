@@ -45,7 +45,6 @@ const mapLayerGroups: Array<{
   { id: "fjords-water", label: "Fjorden & water", categories: ["fjord", "kayak"] },
   { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"] },
   { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
-  { id: "ferry-logistics", label: "Ferry & logistiek", categories: ["ferry_route"] },
 ];
 
 function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
@@ -119,7 +118,7 @@ function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): 
   return {
     id: `custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`,
     name,
-    category: "ferry_route",
+    category: "viewpoint",
     region: "Eigen startpunt",
     description: "Handmatig gekozen startlocatie voor de routeberekening.",
     lat,
@@ -364,7 +363,10 @@ function App() {
                     <strong>{highlight.name}</strong>
                     <span>{categoryLabels[highlight.category]} - {highlight.region}</span>
                     {highlight.imageUrl && (
-                      <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
+                      <>
+                        <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
+                        {highlight.imageCredit && <small className="image-credit">{highlight.imageCredit}</small>}
+                      </>
                     )}
                     <p>{highlight.description}</p>
                     <dl>
@@ -764,6 +766,9 @@ function App() {
                   <div>
                     <strong>{option.stops[0].highlight.name}</strong>
                     <p>{option.stops[0].highlight.detail?.[0] ?? option.stops[0].highlight.description}</p>
+                    {option.stops[0].highlight.imageCredit && (
+                      <small className="image-credit">{option.stops[0].highlight.imageCredit}</small>
+                    )}
                   </div>
                 </div>
               )}

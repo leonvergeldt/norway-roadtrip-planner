@@ -464,6 +464,14 @@ input[type="range"] {
   line-height: 1.38;
 }
 
+.image-credit {
+  display: block;
+  margin-top: 4px;
+  color: #7a8797;
+  font-size: 0.68rem;
+  line-height: 1.25;
+}
+
 .kind-chip,
 .score-pill,
 .fit {

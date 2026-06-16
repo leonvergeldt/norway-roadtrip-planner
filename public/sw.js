@@ -1,7 +1,8 @@
-const APP_CACHE = "norway-planner-app-v2";
+const APP_CACHE = "norway-planner-app-v3";
 const RUNTIME_CACHE = "norway-planner-runtime-v1";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
+const IMAGE_CACHE = "norway-planner-images-v1";
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const APP_SHELL = [
   BASE_PATH,
@@ -30,7 +31,7 @@ self.addEventListener("activate", (event) => {
       .then((keys) =>
         Promise.all(
           keys
-            .filter((key) => ![APP_CACHE, RUNTIME_CACHE, TILE_CACHE, ROUTE_CACHE].includes(key))
+            .filter((key) => ![APP_CACHE, RUNTIME_CACHE, TILE_CACHE, ROUTE_CACHE, IMAGE_CACHE].includes(key))
             .map((key) => caches.delete(key)),
         ),
       )
@@ -74,6 +75,11 @@ self.addEventListener("fetch", (event) => {
     event.respondWith(cacheFirst(request, TILE_CACHE, 260));
     return;
   }
+  if ((url.hostname === "commons.wikimedia.org" || url.hostname === "upload.wikimedia.org") && request.destination === "image") {
+    event.respondWith(cacheFirst(request, IMAGE_CACHE, 160));
+    return;
+  }
+
 
   if (url.hostname === "router.project-osrm.org") {
     event.respondWith(networkFirst(request, ROUTE_CACHE));
@@ -86,7 +92,7 @@ async function cacheFirst(request, cacheName, maxEntries) {
   if (cached) return cached;
 
   const response = await fetch(request);
-  if (response.ok) {
+  if (response.ok || response.type === "opaque") {
     await cache.put(request, response.clone());
     if (maxEntries) await trimCache(cacheName, maxEntries);
   }

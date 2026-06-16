@@ -32,6 +32,12 @@ function normalizeTripDirection(value: Partial<PlannerSettings>["tripDirection"]
   return defaultSettings.tripDirection;
 }
 
+function normalizeEnabledCategories(value: Partial<PlannerSettings>["enabledCategories"]): PlannerSettings["enabledCategories"] {
+  const validCategories = new Set(defaultSettings.enabledCategories);
+  const enabled = value?.filter((category) => validCategories.has(category)) ?? [];
+  return enabled.length ? enabled : defaultSettings.enabledCategories;
+}
+
 export function loadSettings(): PlannerSettings {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
@@ -50,9 +56,7 @@ export function loadSettings(): PlannerSettings {
         ...defaultSettings.ev,
         ...parsed.ev,
       },
-      enabledCategories: parsed.enabledCategories?.length
-        ? parsed.enabledCategories
-        : defaultSettings.enabledCategories,
+      enabledCategories: normalizeEnabledCategories(parsed.enabledCategories),
       recentlyViewedHighlightIds: parsed.recentlyViewedHighlightIds ?? [],
       customStart: parsed.customStart,
     };

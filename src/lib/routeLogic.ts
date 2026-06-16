@@ -83,7 +83,7 @@ function directionRhythmScore(current: Highlight, target: Highlight, tripDirecti
 
 function styleScore(highlight: Highlight, style: TravelStyle) {
   if (style === "slechtweer") {
-    const badWeatherBoost = ["city", "stave_church", "scenic_route", "viewpoint", "ferry_route"].includes(
+    const badWeatherBoost = ["city", "stave_church", "scenic_route", "viewpoint"].includes(
       highlight.category,
     )
       ? 3
@@ -438,7 +438,7 @@ export async function generateRouteOptions(
     (item) => item.hours <= Math.min(maxDriveHours, 2.4),
   );
   const activePick = findByCategory(current, ["hike", "kayak", "viewpoint"], "actief", maxDriveHours, tripDirection);
-  const scenicPick = findByCategory(current, ["scenic_route", "fjord", "viewpoint", "ferry_route"], "scenic", maxDriveHours, tripDirection);
+  const scenicPick = findByCategory(current, ["scenic_route", "fjord", "viewpoint"], "scenic", maxDriveHours, tripDirection);
   const transitPick = pickCandidates(current, dayStyle, Math.min(4, maxDriveHours + 0.8), tripDirection).find(
     (item) => item.hours >= Math.min(2, maxDriveHours * 0.65),
   );

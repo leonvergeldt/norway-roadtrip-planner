@@ -5,8 +5,7 @@ export type Category =
   | "stave_church"
   | "kayak"
   | "viewpoint"
-  | "scenic_route"
-  | "ferry_route";
+  | "scenic_route";
 
 export type Importance = "must-see" | "aanbevolen" | "optioneel";
 

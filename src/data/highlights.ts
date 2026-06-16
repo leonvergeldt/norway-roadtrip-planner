@@ -8,7 +8,6 @@ export const categoryLabels: Record<Category, string> = {
   kayak: "Kano/kajak",
   viewpoint: "Uitzichtpunten",
   scenic_route: "Scenic routes",
-  ferry_route: "Ferry/routepunten",
 };
 
 export const categoryColors: Record<Category, string> = {
@@ -19,7 +18,6 @@ export const categoryColors: Record<Category, string> = {
   kayak: "#0f766e",
   viewpoint: "#ea580c",
   scenic_route: "#dc2626",
-  ferry_route: "#475569",
 };
 
 const imageAsset = (fileName: string) => `${import.meta.env.BASE_URL}images/${fileName}`;
@@ -32,28 +30,39 @@ const categoryImages: Record<Category, string> = {
   kayak: imageAsset("fjord.svg"),
   viewpoint: imageAsset("waterfall.svg"),
   scenic_route: imageAsset("scenic-road.svg"),
-  ferry_route: imageAsset("coast.svg"),
 };
 
 const highlightImages: Record<string, string> = {
   kristiansand: imageAsset("coast.svg"),
   lindesnes: imageAsset("coast.svg"),
   stavanger: imageAsset("city.svg"),
-  preikestolen: imageAsset("hike.svg"),
-  lysefjord: imageAsset("fjord.svg"),
-  hardangerfjord: imageAsset("fjord.svg"),
+  preikestolen: imageAsset("photos/preikestolen.jpg"),
+  lysefjord: imageAsset("photos/preikestolen.jpg"),
+  hardangerfjord: imageAsset("photos/hardangerfjord.jpg"),
   latefossen: imageAsset("waterfall.svg"),
-  bergen: imageAsset("city.svg"),
-  bryggen: imageAsset("city.svg"),
-  naeroyfjord: imageAsset("fjord.svg"),
-  flam: imageAsset("fjord.svg"),
-  stegastein: imageAsset("scenic-road.svg"),
-  geiranger: imageAsset("fjord.svg"),
-  dalsnibba: imageAsset("scenic-road.svg"),
+  bergen: imageAsset("photos/bergen-bryggen.jpg"),
+  bryggen: imageAsset("photos/bergen-bryggen.jpg"),
+  geiranger: imageAsset("photos/geirangerfjord.jpg"),
+  ornesvingen: imageAsset("photos/geirangerfjord.jpg"),
+  flydalsjuvet: imageAsset("photos/geirangerfjord.jpg"),
+  borgund: imageAsset("photos/borgund-stave-church.jpg"),
   trollstigen: imageAsset("scenic-road.svg"),
-  "atlantic-road": imageAsset("coast.svg"),
+  "atlantic-road": imageAsset("photos/atlantic-road.jpg"),
   "telemark-canal": imageAsset("coast.svg"),
   vemork: imageAsset("city.svg"),
+};
+
+const photoCredits: Record<string, string> = {
+  preikestolen: "Foto: Preikestolen, Wikimedia Commons",
+  lysefjord: "Foto: Preikestolen/Lysefjord, Wikimedia Commons",
+  hardangerfjord: "Foto: Hardangerfjord, Wikimedia Commons",
+  bergen: "Foto: Bryggen, Wikimedia Commons",
+  bryggen: "Foto: Bryggen, Wikimedia Commons",
+  geiranger: "Foto: Geirangerfjord, Wikimedia Commons",
+  ornesvingen: "Foto: Geirangerfjord, Wikimedia Commons",
+  flydalsjuvet: "Foto: Geirangerfjord, Wikimedia Commons",
+  borgund: "Foto: Borgund stavkirke, Wikimedia Commons",
+  "atlantic-road": "Foto: Atlantic Ocean Road, Wikimedia Commons",
 };
 
 const customDetails: Record<string, string[]> = {
@@ -108,7 +117,6 @@ function categoryDetail(highlight: Highlight) {
     kayak: `${highlight.name} is een keuze voor nabijheid tot het water. Als weer en energie kloppen, kan dit een van de meest ontspannen manieren zijn om een fjord te beleven.`,
     viewpoint: `${highlight.name} is een snelle stemmingsmeter: bij open lucht stoppen en genieten, bij dichte wolken zonder spijt verder.`,
     scenic_route: `${highlight.name} is een routegevoel meer dan een losse bestemming. Laat ruimte voor fotostops, kleine omwegen en het simpele plezier van mooi onderweg zijn.`,
-    ferry_route: `${highlight.name} kan een dag karakter geven: wachten aan de kade, langzaam oversteken en de route even vanaf het water bekijken. Check wel altijd actuele tijden.`,
   };
 
   return categoryText[highlight.category];
@@ -131,7 +139,7 @@ const navigationTargets: Record<
   kristiansand: {
     navigationLat: 58.1446,
     navigationLng: 7.9898,
-    navigationLabel: "Kristiansand ferry/centrum",
+    navigationLabel: "Kristiansand haven/centrum",
     navigationNote: "Praktisch startpunt vanaf de haven en centrumparkings.",
   },
   lindesnes: {
@@ -266,12 +274,6 @@ const navigationTargets: Record<
     navigationLabel: "Manafossen parking",
     navigationNote: "Start van de korte steile wandeling.",
   },
-  lysebotn: {
-    navigationLat: 59.0558,
-    navigationLng: 6.6504,
-    navigationLabel: "Lysebotn kai/parking",
-    navigationNote: "Ferry- en haarspeldroute actueel plannen.",
-  },
   kjerag: {
     navigationLat: 59.0452,
     navigationLng: 6.6516,
@@ -342,7 +344,7 @@ const navigationTargets: Record<
     navigationLat: 60.8789,
     navigationLng: 6.8387,
     navigationLabel: "Gudvangen kai/parking",
-    navigationNote: "Praktisch voor ferry/cruise/kayak.",
+    navigationNote: "Praktisch voor boottocht, cruise of kayak.",
   },
   otternes: {
     navigationLat: 60.8921,
@@ -354,7 +356,7 @@ const navigationTargets: Record<
     navigationLat: 61.1856,
     navigationLng: 7.2322,
     navigationLabel: "Kaupanger stavkyrkje parking",
-    navigationNote: "Korte stop dicht bij Sogndal/ferry-as.",
+    navigationNote: "Korte stop dicht bij Sogndal en de doorgaande route.",
   },
   "urnes-stave-church": {
     navigationLat: 61.2986,
@@ -379,18 +381,6 @@ const navigationTargets: Record<
     navigationLng: 7.2701,
     navigationLabel: "Gamle Strynefjellsvegen west access",
     navigationNote: "Scenic route seizoens- en wegstatus checken.",
-  },
-  hellesylt: {
-    navigationLat: 62.0854,
-    navigationLng: 6.8675,
-    navigationLabel: "Hellesylt ferry quay",
-    navigationNote: "Gebruik voor Geirangerfjord-ferryplanning.",
-  },
-  "geiranger-hellesylt-ferry": {
-    navigationLat: 62.1008,
-    navigationLng: 7.2056,
-    navigationLabel: "Geiranger ferry quay",
-    navigationNote: "Routeert naar de kade; reservering/dienstregeling checken.",
   },
   ornesvingen: {
     navigationLat: 62.1193,
@@ -513,7 +503,7 @@ const rawHighlights: Highlight[] = [
     name: "Lysefjord scenic stop",
     category: "fjord",
     region: "Lysefjord",
-    description: "Fjordgebied rond Preikestolen met ferry- en uitzichtopties.",
+    description: "Fjordgebied rond Preikestolen met boot-, route- en uitzichtopties.",
     lat: 59.0225,
     lng: 6.2715,
     visitTimeHours: 3,
@@ -602,9 +592,9 @@ const rawHighlights: Highlight[] = [
   {
     id: "flam",
     name: "Flam",
-    category: "ferry_route",
+    category: "fjord",
     region: "Sognefjord",
-    description: "Toeristische maar handige hub voor Naeroyfjord, trein en fjordlogistiek.",
+    description: "Toeristische maar handige fjordhub voor Naeroyfjord, trein en activiteiten op het water.",
     lat: 60.8612,
     lng: 7.1145,
     visitTimeHours: 3,
@@ -695,7 +685,7 @@ const rawHighlights: Highlight[] = [
     name: "Geiranger",
     category: "fjord",
     region: "More og Romsdal",
-    description: "Dramatisch fjordlandschap met uitzichtpunten, ferry, wandelingen en haarspeldwegen.",
+    description: "Dramatisch fjordlandschap met uitzichtpunten, boottochten, wandelingen en haarspeldwegen.",
     lat: 62.1015,
     lng: 7.2057,
     visitTimeHours: 8,
@@ -897,19 +887,6 @@ const rawHighlights: Highlight[] = [
     importance: "aanbevolen",
     styles: ["actief", "natuur"],
     note: "Goede actieve optie als Preikestolen te druk of te mistig is.",
-  },
-  {
-    id: "lysebotn",
-    name: "Lysebotn",
-    category: "ferry_route",
-    region: "Lysefjord",
-    description: "Fjorddorp aan het einde van Lysefjord, sterk als route-ervaring maar traag bereikbaar.",
-    lat: 59.0553,
-    lng: 6.6511,
-    visitTimeHours: 2,
-    importance: "optioneel",
-    styles: ["scenic", "natuur", "rustig"],
-    note: "Kan een fantastische dag zijn, maar niet als je strak richting Bergen moet.",
   },
   {
     id: "kjerag",
@@ -1176,7 +1153,7 @@ const rawHighlights: Highlight[] = [
     name: "Kaupanger staafkerk",
     category: "stave_church",
     region: "Sognefjord",
-    description: "Staafkerk dicht bij Sogndal en de ferry-as over Sognefjord.",
+    description: "Staafkerk dicht bij Sogndal en de route-as langs Sognefjord.",
     lat: 61.1856,
     lng: 7.2321,
     visitTimeHours: 1,
@@ -1195,7 +1172,7 @@ const rawHighlights: Highlight[] = [
     visitTimeHours: 2,
     importance: "aanbevolen",
     styles: ["cultuur", "rustig", "scenic"],
-    note: "Check ferry en opening; niet ideaal als snelle tussenstop.",
+    note: "Check vaartijden en opening; niet ideaal als snelle tussenstop.",
   },
   {
     id: "sogndal",
@@ -1274,32 +1251,6 @@ const rawHighlights: Highlight[] = [
     importance: "aanbevolen",
     styles: ["scenic", "natuur"],
     note: "Seizoensgevoelig; check wegstatus en houd EV-marge aan.",
-  },
-  {
-    id: "hellesylt",
-    name: "Hellesylt",
-    category: "ferry_route",
-    region: "Geiranger",
-    description: "Ferryplaats en rustiger toegangspoort tot Geirangerfjord.",
-    lat: 62.0854,
-    lng: 6.8675,
-    visitTimeHours: 1.5,
-    importance: "aanbevolen",
-    styles: ["scenic", "rustig", "natuur"],
-    note: "Sterk routepunt als je Geiranger per fjord wilt benaderen.",
-  },
-  {
-    id: "geiranger-hellesylt-ferry",
-    name: "Geiranger-Hellesylt ferry",
-    category: "ferry_route",
-    region: "Geiranger",
-    description: "Scenische ferry door Geirangerfjord, vaak meer belevenis dan transport.",
-    lat: 62.0848,
-    lng: 7.0656,
-    visitTimeHours: 1.5,
-    importance: "aanbevolen",
-    styles: ["scenic", "natuur", "rustig"],
-    note: "Check dienstregeling en reserveren; dit kan de dag maken of breken.",
   },
   {
     id: "ornesvingen",
@@ -1485,11 +1436,15 @@ const rawHighlights: Highlight[] = [
   },
 ];
 
-export const highlights: Highlight[] = rawHighlights.map((highlight) => ({
-  ...highlight,
-  detail: buildDetail(highlight),
-  imageUrl: highlightImages[highlight.id] ?? categoryImages[highlight.category],
-  imageAlt: `Sfeerbeeld bij ${highlight.name}`,
-  imageCredit: "Offline sfeerbeeld",
-  ...navigationTargets[highlight.id],
-}));
+export const highlights: Highlight[] = rawHighlights.map((highlight) => {
+  const imageUrl = highlightImages[highlight.id] ?? categoryImages[highlight.category];
+
+  return {
+    ...highlight,
+    detail: buildDetail(highlight),
+    imageUrl,
+    imageAlt: `Sfeerbeeld bij ${highlight.name}`,
+    imageCredit: photoCredits[highlight.id] ?? (imageUrl.startsWith("https://") ? "Foto: Wikimedia Commons" : "Offline sfeerbeeld"),
+    ...navigationTargets[highlight.id],
+  };
+});
