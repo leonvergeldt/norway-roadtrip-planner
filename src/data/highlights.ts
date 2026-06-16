@@ -21,6 +21,8 @@ export const categoryColors: Record<Category, string> = {
 };
 
 const imageAsset = (fileName: string) => `${import.meta.env.BASE_URL}images/${fileName}`;
+const commonsImage = (fileName: string) =>
+  `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}?width=1000`;
 
 const categoryImages: Record<Category, string> = {
   city: imageAsset("city.svg"),
@@ -33,36 +35,76 @@ const categoryImages: Record<Category, string> = {
 };
 
 const highlightImages: Record<string, string> = {
-  kristiansand: imageAsset("coast.svg"),
-  lindesnes: imageAsset("coast.svg"),
-  stavanger: imageAsset("city.svg"),
+  kristiansand: commonsImage("Kristiansand,_Norway.jpg"),
+  lindesnes: commonsImage("Lindesnes_fyr_Lindesnes_Lighthouse_Norway.JPG"),
+  stavanger: commonsImage("Gamle_Stavanger_2017_nördlicher_Teil.jpg"),
   preikestolen: imageAsset("photos/preikestolen.jpg"),
   lysefjord: imageAsset("photos/preikestolen.jpg"),
   hardangerfjord: imageAsset("photos/hardangerfjord.jpg"),
-  latefossen: imageAsset("waterfall.svg"),
+  latefossen: commonsImage("Låtefossen_2024.jpg"),
+  odda: commonsImage("Odda_Marie_nord_i_Sørfjorden.jpg"),
   bergen: imageAsset("photos/bergen-bryggen.jpg"),
   bryggen: imageAsset("photos/bergen-bryggen.jpg"),
+  naeroyfjord: commonsImage("Nærøyfjord-Norway-April-2011.jpg"),
+  flam: commonsImage("AIDAprima_in_Flåm,_Norway_-_June_2022.jpg"),
+  stegastein: commonsImage("Stegastein_viewpoint_showing_Aurlandsfjord.jpg"),
   geiranger: imageAsset("photos/geirangerfjord.jpg"),
+  dalsnibba: commonsImage("A_view_towards_Geirangerfjord_from_Dalsnibba,_Møre_og_Romsdal,_Norway,_2013_June.jpg"),
   ornesvingen: imageAsset("photos/geirangerfjord.jpg"),
   flydalsjuvet: imageAsset("photos/geirangerfjord.jpg"),
   borgund: imageAsset("photos/borgund-stave-church.jpg"),
-  trollstigen: imageAsset("scenic-road.svg"),
+  jostedalsbreen: commonsImage("Nigardsbreen-Norway.jpg"),
+  trollstigen: commonsImage("Trollstigen_Norway_2006.JPG"),
+  alesund: commonsImage("Summer_Night_-_Alesund,_Norway_-_panoramio.jpg"),
   "atlantic-road": imageAsset("photos/atlantic-road.jpg"),
+  lom: commonsImage("Stave_church_Lom,_exterior_view_2.jpg"),
   "telemark-canal": imageAsset("coast.svg"),
-  vemork: imageAsset("city.svg"),
+  "gamle-stavanger": commonsImage("Gamle_Stavanger_2017_nördlicher_Teil.jpg"),
+  kjerag: commonsImage("A_man_standing_on_Kjeragbolten.jpg"),
+  steinsdalsfossen: commonsImage("Steinsdalsfossen.jpg"),
+  voringfossen: commonsImage("Vøringsfossen,_Norway.jpg"),
+  floyen: commonsImage("Floyen_night.jpg"),
+  troldhaugen: commonsImage("Towards_the_Composer's_Hut_at_Troldhaugen_-_the_home_of_Edvard_Grieg.jpg"),
+  "fantoft-stave-church": commonsImage("Bergen,_Fantoft2.jpg"),
+  gudvangen: commonsImage("Gudvangen.JPG"),
+  undredal: commonsImage("Undredal_from_Sognefjord.jpg"),
+  briksdalsbreen: commonsImage("Briksdalsbreen-Norway.jpg"),
 };
 
 const photoCredits: Record<string, string> = {
+  kristiansand: "Foto: Kristiansand, Wikimedia Commons",
+  lindesnes: "Foto: Lindesnes fyr, Wikimedia Commons",
+  stavanger: "Foto: Gamle Stavanger, Wikimedia Commons",
   preikestolen: "Foto: Preikestolen, Wikimedia Commons",
   lysefjord: "Foto: Preikestolen/Lysefjord, Wikimedia Commons",
   hardangerfjord: "Foto: Hardangerfjord, Wikimedia Commons",
+  latefossen: "Foto: Latefossen, Wikimedia Commons",
+  odda: "Foto: Odda, Wikimedia Commons",
   bergen: "Foto: Bryggen, Wikimedia Commons",
   bryggen: "Foto: Bryggen, Wikimedia Commons",
+  naeroyfjord: "Foto: Naeroyfjord, Wikimedia Commons",
+  flam: "Foto: Flam, Wikimedia Commons",
+  stegastein: "Foto: Stegastein, Wikimedia Commons",
   geiranger: "Foto: Geirangerfjord, Wikimedia Commons",
+  dalsnibba: "Foto: Dalsnibba, Wikimedia Commons",
   ornesvingen: "Foto: Geirangerfjord, Wikimedia Commons",
   flydalsjuvet: "Foto: Geirangerfjord, Wikimedia Commons",
   borgund: "Foto: Borgund stavkirke, Wikimedia Commons",
+  jostedalsbreen: "Foto: Nigardsbreen, Wikimedia Commons",
+  trollstigen: "Foto: Trollstigen, Wikimedia Commons",
+  alesund: "Foto: Alesund, Wikimedia Commons",
   "atlantic-road": "Foto: Atlantic Ocean Road, Wikimedia Commons",
+  lom: "Foto: Lom staafkerk, Wikimedia Commons",
+  "gamle-stavanger": "Foto: Gamle Stavanger, Wikimedia Commons",
+  kjerag: "Foto: Kjeragbolten, Wikimedia Commons",
+  steinsdalsfossen: "Foto: Steinsdalsfossen, Wikimedia Commons",
+  voringfossen: "Foto: Voringfossen, Wikimedia Commons",
+  floyen: "Foto: Floyen, Wikimedia Commons",
+  troldhaugen: "Foto: Troldhaugen, Wikimedia Commons",
+  "fantoft-stave-church": "Foto: Fantoft stavkirke, Wikimedia Commons",
+  gudvangen: "Foto: Gudvangen, Wikimedia Commons",
+  undredal: "Foto: Undredal, Wikimedia Commons",
+  briksdalsbreen: "Foto: Briksdalsbreen, Wikimedia Commons",
 };
 
 const customDetails: Record<string, string[]> = {
