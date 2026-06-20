@@ -316,15 +316,27 @@ function App() {
     ? [currentHighlight, ...selectedOption.stops.map((stop) => stop.highlight)].filter(hasNavigationTarget)
     : [];
 
+  function clearCurrentRouteOptions() {
+    setRouteOptions([]);
+    setSelectedOptionId(undefined);
+  }
+
   function updateSettings(update: Partial<PlannerSettings>) {
     setSettings((current) => ({ ...current, ...update }));
+  }
+
+  function updatePlanningSettings(update: Partial<PlannerSettings>) {
+    updateSettings({ ...update, savedTodayOptionId: undefined });
+    clearCurrentRouteOptions();
   }
 
   function updateEv(key: keyof PlannerSettings["ev"], value: number) {
     setSettings((current) => ({
       ...current,
       ev: { ...current.ev, [key]: value },
+      savedTodayOptionId: undefined,
     }));
+    clearCurrentRouteOptions();
   }
 
   function toggleLayerGroup(categories: Category[]) {
@@ -346,8 +358,7 @@ function App() {
         savedTodayOptionId: undefined,
       };
     });
-    setRouteOptions([]);
-    setSelectedOptionId(undefined);
+    clearCurrentRouteOptions();
   }
 
   async function prepareOfflineMap() {
@@ -387,8 +398,7 @@ function App() {
       savedTodayOptionId: undefined,
     }));
     setSelectedHighlightId(`custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`);
-    setRouteOptions([]);
-    setSelectedOptionId(undefined);
+    clearCurrentRouteOptions();
     setIsPickingStart(false);
   }
 
@@ -435,8 +445,7 @@ function App() {
       savedTodayOptionId: undefined,
     }));
     setSelectedHighlightId(settings.currentHighlightId);
-    setRouteOptions([]);
-    setSelectedOptionId(undefined);
+    clearCurrentRouteOptions();
     setIsPickingStart(false);
   }
 
@@ -468,8 +477,7 @@ function App() {
       priorityHighlightIds: current.priorityHighlightIds,
       recentlyViewedHighlightIds: current.recentlyViewedHighlightIds,
     }));
-    setRouteOptions([]);
-    setSelectedOptionId(undefined);
+    clearCurrentRouteOptions();
   }
 
   function viewHighlight(highlight: Highlight) {
@@ -483,11 +491,15 @@ function App() {
     }));
   }
 
+  function openHighlightPopup(highlight: Highlight) {
+    viewHighlight(highlight);
+    setPopupHighlightId(highlight.id);
+  }
+
   function useAsCurrent(highlight: Highlight) {
     updateSettings({ currentHighlightId: highlight.id, customStart: undefined });
     setSelectedHighlightId(highlight.id);
-    setRouteOptions([]);
-    setSelectedOptionId(undefined);
+    clearCurrentRouteOptions();
     setIsPickingStart(false);
   }
 
@@ -829,30 +841,16 @@ function App() {
         </header>
 
         <section className="control-section">
-          <label htmlFor="current-location">Huidige locatie of regio</label>
-          <select
-            id="current-location"
-            value={settings.currentHighlightId}
-            onChange={(event) => {
-              updateSettings({ currentHighlightId: event.target.value, customStart: undefined });
-              setRouteOptions([]);
-              setSelectedOptionId(undefined);
-              setIsPickingStart(false);
-            }}
-          >
-            {highlights.map((highlight) => (
-              <option key={highlight.id} value={highlight.id}>
-                {highlight.name} - {highlight.region}
-              </option>
-            ))}
-          </select>
-
-          {settings.customStart && (
-            <div className="custom-start-pill">
-              <span>Eigen startpunt actief</span>
-              <button type="button" onClick={clearCustomStart}>Wis</button>
+          <div className="start-summary">
+            <MapPinned size={17} />
+            <div>
+              <span>Startpunt</span>
+              <strong>{currentHighlight.name}</strong>
             </div>
-          )}
+            {settings.customStart && (
+              <button type="button" onClick={clearCustomStart}>Wis</button>
+            )}
+          </div>
 
           <div className="range-row">
             <label htmlFor="drive-hours">Gewenste rijtijd vandaag</label>
@@ -865,7 +863,7 @@ function App() {
             max="4"
             step="0.5"
             value={settings.maxDriveHours}
-            onChange={(event) => updateSettings({ maxDriveHours: Number(event.target.value) })}
+            onChange={(event) => updatePlanningSettings({ maxDriveHours: Number(event.target.value) })}
           />
         </section>
 
@@ -881,7 +879,7 @@ function App() {
                 key={style.value}
                 type="button"
                 className={settings.dayStyle === style.value ? "active" : ""}
-                onClick={() => updateSettings({ dayStyle: style.value })}
+                onClick={() => updatePlanningSettings({ dayStyle: style.value })}
               >
                 {style.label}
               </button>
@@ -899,7 +897,7 @@ function App() {
                 key={direction.value}
                 type="button"
                 className={settings.tripDirection === direction.value ? "active" : ""}
-                onClick={() => updateSettings({ tripDirection: direction.value })}
+                onClick={() => updatePlanningSettings({ tripDirection: direction.value })}
               >
                 {direction.label}
               </button>
@@ -980,7 +978,7 @@ function App() {
 
           {!routeOptions.length && (
             <div className="empty-state">
-              Kies je locatie, rijtijd en dagstijl. Daarna verschijnen meerdere dagopties met stops op de kaart.
+              Kies een startpunt op de kaart, via GPS of met prikpunt. Daarna verschijnen dagopties met stops op de kaart.
             </div>
           )}
 
@@ -1079,7 +1077,14 @@ function App() {
               </div>
               <div className="stops">
                 {option.stops.map((stop) => (
-                  <button key={stop.highlight.id} type="button" onClick={() => viewHighlight(stop.highlight)}>
+                                    <button
+                    key={stop.highlight.id}
+                    type="button"
+                    onClick={(event) => {
+                      event.stopPropagation();
+                      openHighlightPopup(stop.highlight);
+                    }}
+                  >
                     <span className="stop-main">
                       <strong>{stop.highlight.name}</strong>
                       {priorityHighlightIdSet.has(stop.highlight.id) && (

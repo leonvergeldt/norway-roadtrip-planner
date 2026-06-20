@@ -425,32 +425,55 @@ h3 {
   font-weight: 700;
 }
 
-.custom-start-pill {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
+.start-summary {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr) auto;
   gap: 8px;
-  min-height: 32px;
-  padding: 7px 9px;
-  color: #7a4f00;
-  background: #fff8db;
-  border: 1px solid #facc15;
+  align-items: center;
+  min-height: 38px;
+  padding: 8px 10px;
+  color: #172033;
+  background: #f8faf9;
+  border: 1px solid #dce5e1;
   border-radius: 7px;
-  font-size: 0.78rem;
-  font-weight: 850;
 }
 
-.custom-start-pill button {
-  min-height: 24px;
-  padding: 0 8px;
+.start-summary svg {
+  color: #0f766e;
+}
+
+.start-summary span,
+.start-summary strong {
+  display: block;
+  min-width: 0;
+}
+
+.start-summary span {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.start-summary strong {
+  overflow: hidden;
+  color: #172033;
+  font-size: 0.86rem;
+  font-weight: 900;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.start-summary button {
+  min-height: 26px;
+  padding: 0 9px;
   color: #7a4f00;
-  background: rgba(255, 255, 255, 0.7);
+  background: #fff8db;
   border: 0;
   border-radius: 999px;
   font-size: 0.72rem;
   font-weight: 900;
 }
-
 
 .secondary-button:disabled {
   cursor: wait;
