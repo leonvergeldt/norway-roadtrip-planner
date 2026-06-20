@@ -62,6 +62,7 @@ export interface PlannerSettings {
   enabledCategories: Category[];
   ev: EvSettings;
   priorityHighlightIds: string[];
+  completedHighlightIds: string[];
   recentlyViewedHighlightIds: string[];
   savedTodayOptionId?: string;
 }

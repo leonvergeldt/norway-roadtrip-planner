@@ -4,6 +4,7 @@ import { divIcon } from "leaflet";
 import type { CircleMarker as LeafletCircleMarker, LatLngExpression } from "leaflet";
 import {
   BatteryCharging,
+  CheckCircle2,
   ChevronDown,
   ChevronUp,
   CloudRain,
@@ -243,6 +244,10 @@ function App() {
     () => new Set(settings.priorityHighlightIds),
     [settings.priorityHighlightIds],
   );
+  const completedHighlightIdSet = useMemo(
+    () => new Set(settings.completedHighlightIds),
+    [settings.completedHighlightIds],
+  );
   const enabledCategorySet = useMemo(
     () => new Set(settings.enabledCategories),
     [settings.enabledCategories],
@@ -295,13 +300,15 @@ function App() {
         ? highlights
             .filter(matchesSearch)
             .sort((a, b) => {
+              const aCompleted = completedHighlightIdSet.has(a.id) ? 1 : 0;
+              const bCompleted = completedHighlightIdSet.has(b.id) ? 1 : 0;
               const aPriority = priorityHighlightIdSet.has(a.id) ? 1 : 0;
               const bPriority = priorityHighlightIdSet.has(b.id) ? 1 : 0;
-              return bPriority - aPriority || a.name.localeCompare(b.name);
+              return aCompleted - bCompleted || bPriority - aPriority || a.name.localeCompare(b.name);
             })
             .slice(0, 6)
         : [],
-    [normalizedSearch, priorityHighlightIdSet],
+    [completedHighlightIdSet, normalizedSearch, priorityHighlightIdSet],
   );
 
   const routeLine = selectedOption?.routePath?.length
@@ -355,6 +362,24 @@ function App() {
         priorityHighlightIds: isPriority
           ? current.priorityHighlightIds.filter((id) => id !== highlightId)
           : [highlightId, ...current.priorityHighlightIds],
+        completedHighlightIds: current.completedHighlightIds.filter((id) => id !== highlightId),
+        savedTodayOptionId: undefined,
+      };
+    });
+    clearCurrentRouteOptions();
+  }
+
+  function toggleCompletedHighlight(highlightId: string) {
+    setSettings((current) => {
+      const isCompleted = current.completedHighlightIds.includes(highlightId);
+      return {
+        ...current,
+        completedHighlightIds: isCompleted
+          ? current.completedHighlightIds.filter((id) => id !== highlightId)
+          : [highlightId, ...current.completedHighlightIds],
+        priorityHighlightIds: isCompleted
+          ? current.priorityHighlightIds
+          : current.priorityHighlightIds.filter((id) => id !== highlightId),
         savedTodayOptionId: undefined,
       };
     });
@@ -461,6 +486,7 @@ function App() {
         settings.ev,
         settings.tripDirection,
         settings.priorityHighlightIds,
+        settings.completedHighlightIds,
       );
       setRouteOptions(nextOptions);
       setSelectedOptionId(nextOptions[0]?.id);
@@ -475,6 +501,7 @@ function App() {
       ...defaultSettings,
       ev: current.ev,
       priorityHighlightIds: current.priorityHighlightIds,
+      completedHighlightIds: current.completedHighlightIds,
       recentlyViewedHighlightIds: current.recentlyViewedHighlightIds,
     }));
     clearCurrentRouteOptions();
@@ -634,6 +661,7 @@ function App() {
             const isCurrent = highlight.id === currentHighlight.id;
             const isSelected = highlight.id === selectedHighlightId;
             const isPriority = priorityHighlightIdSet.has(highlight.id);
+            const isCompleted = completedHighlightIdSet.has(highlight.id);
             return (
               <Fragment key={highlight.id}>
               <CircleMarker
@@ -643,21 +671,56 @@ function App() {
                 center={[highlight.lat, highlight.lng]}
                 radius={isCurrent ? 12 : isSelected ? 10 : highlight.importance === "must-see" ? 8 : 7}
                 pathOptions={{
-                  color: isCurrent ? "#111827" : "#ffffff",
+                  color: isCompleted ? "#94a3b8" : isCurrent ? "#111827" : "#ffffff",
                   weight: isCurrent ? 3 : 2,
                   fillColor: categoryColors[highlight.category],
-                  fillOpacity: 0.95,
+                  fillOpacity: isCompleted ? 0.28 : 0.95,
+                  opacity: isCompleted ? 0.55 : 1,
                 }}
                 eventHandlers={{ click: () => viewHighlight(highlight) }}
               >
                 <Tooltip direction="top" offset={[0, -8]}>
-                  {highlight.name}
+                  {highlight.name}{isCompleted ? " - gedaan" : ""}
                 </Tooltip>
                 <Popup>
                   <div className="popup">
-                    <strong>{highlight.name}</strong>
-                    <span>{categoryLabels[highlight.category]} - {highlight.region}</span>
-                    {isPriority && <span className="priority-label">Zeker doen</span>}
+                    <div className="popup-title-row">
+                      <div>
+                        <strong>{highlight.name}</strong>
+                        <span>{categoryLabels[highlight.category]} - {highlight.region}</span>
+                      </div>
+                      {isCompleted && <span className="done-label">Gedaan</span>}
+                    </div>
+                    <div className="popup-actions compact">
+                      <button
+                        type="button"
+                        className="popup-action-button"
+                        onClick={() => useAsCurrent(highlight)}
+                        title="Gebruik als startpunt voor dagopties"
+                      >
+                        <MapPinned size={14} />
+                        <span>Start</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={isPriority ? "popup-action-button priority active" : "popup-action-button priority"}
+                        onClick={() => togglePriorityHighlight(highlight.id)}
+                        title={isPriority ? "Verwijder uit zeker doen" : "Markeer als zeker doen"}
+                      >
+                        <Star size={14} />
+                        <span>{isPriority ? "Zeker" : "Bewaar"}</span>
+                      </button>
+                      <button
+                        type="button"
+                        className={isCompleted ? "popup-action-button done active" : "popup-action-button done"}
+                        onClick={() => toggleCompletedHighlight(highlight.id)}
+                        title={isCompleted ? "Zet terug in de planner" : "Markeer als gedaan"}
+                      >
+                        <CheckCircle2 size={14} />
+                        <span>Gedaan</span>
+                      </button>
+                    </div>
+                    {isPriority && !isCompleted && <span className="priority-label">Zeker doen</span>}
                     {highlight.imageUrl && (
                       <>
                         <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
@@ -695,30 +758,10 @@ function App() {
                         )}
                       </details>
                     )}
-                    <div className="popup-actions compact">
-                      <button
-                        type="button"
-                        className="popup-action-button"
-                        onClick={() => useAsCurrent(highlight)}
-                        title="Gebruik als startpunt voor dagopties"
-                      >
-                        <MapPinned size={14} />
-                        <span>Start hier</span>
-                      </button>
-                      <button
-                        type="button"
-                        className={isPriority ? "popup-action-button priority active" : "popup-action-button priority"}
-                        onClick={() => togglePriorityHighlight(highlight.id)}
-                        title={isPriority ? "Verwijder uit zeker doen" : "Markeer als zeker doen"}
-                      >
-                        <Star size={14} />
-                        <span>{isPriority ? "Zeker" : "Bewaar"}</span>
-                      </button>
-                    </div>
                   </div>
                 </Popup>
               </CircleMarker>
-              {isPriority && !isCurrent && (
+              {isPriority && !isCurrent && !isCompleted && (
                 <Marker
                   position={[highlight.lat, highlight.lng]}
                   icon={priorityStarIcon}
@@ -1087,7 +1130,7 @@ function App() {
                   >
                     <span className="stop-main">
                       <strong>{stop.highlight.name}</strong>
-                      {priorityHighlightIdSet.has(stop.highlight.id) && (
+                      {priorityHighlightIdSet.has(stop.highlight.id) && !completedHighlightIdSet.has(stop.highlight.id) && (
                         <em>
                           <Star size={13} />
                           Zeker doen

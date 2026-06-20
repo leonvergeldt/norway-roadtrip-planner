@@ -16,6 +16,7 @@ export const defaultSettings: PlannerSettings = {
     maxDistanceWithoutChargingKm: 280,
   },
   priorityHighlightIds: ["kristiansand", "stavanger", "preikestolen", "bergen", "geiranger"],
+  completedHighlightIds: [],
   recentlyViewedHighlightIds: [],
 };
 
@@ -39,9 +40,9 @@ function normalizeEnabledCategories(value: Partial<PlannerSettings>["enabledCate
   return enabled.length ? enabled : defaultSettings.enabledCategories;
 }
 
-function normalizeHighlightIds(value: Partial<PlannerSettings>["priorityHighlightIds"]): string[] {
+function normalizeHighlightIds(value: string[] | undefined, fallback: string[] = []): string[] {
   const validIds = new Set(highlights.map((highlight) => highlight.id));
-  return value?.filter((id) => validIds.has(id)) ?? defaultSettings.priorityHighlightIds;
+  return value?.filter((id) => validIds.has(id)) ?? fallback;
 }
 
 export function loadSettings(): PlannerSettings {
@@ -63,7 +64,8 @@ export function loadSettings(): PlannerSettings {
         ...parsed.ev,
       },
       enabledCategories: normalizeEnabledCategories(parsed.enabledCategories),
-      priorityHighlightIds: normalizeHighlightIds(parsed.priorityHighlightIds),
+      priorityHighlightIds: normalizeHighlightIds(parsed.priorityHighlightIds, defaultSettings.priorityHighlightIds),
+      completedHighlightIds: normalizeHighlightIds(parsed.completedHighlightIds, []),
       recentlyViewedHighlightIds: parsed.recentlyViewedHighlightIds ?? [],
       customStart: parsed.customStart,
     };

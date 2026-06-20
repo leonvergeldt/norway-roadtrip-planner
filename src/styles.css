@@ -698,7 +698,8 @@ input[type="range"] {
   line-height: 1.25;
 }
 
-.priority-label {
+.priority-label,
+.done-label {
   display: inline-flex;
   width: fit-content;
   padding: 3px 7px;
@@ -707,6 +708,12 @@ input[type="range"] {
   border-radius: 999px;
   font-size: 0.7rem !important;
   font-weight: 900;
+}
+
+.done-label {
+  align-self: start;
+  color: #475569 !important;
+  background: #e2e8f0;
 }
 
 .kind-chip,
@@ -1046,10 +1053,23 @@ input[type="range"] {
   max-width: 300px;
 }
 
+.popup-title-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 8px;
+  align-items: start;
+}
+
+.popup-title-row div {
+  display: grid;
+  gap: 2px;
+  min-width: 0;
+}
+
 .popup-actions.compact {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 5px;
 }
 
 .popup-action-button {
@@ -1079,6 +1099,20 @@ input[type="range"] {
 
 .popup-action-button.priority.active svg {
   fill: #ffffff;
+}
+
+.popup-action-button.done {
+  color: #475569;
+  background: #eef2f5;
+}
+
+.popup-action-button.done.active {
+  color: #ffffff;
+  background: #64748b;
+}
+
+.popup-action-button.done.active svg {
+  color: #ffffff;
 }
 
 .popup-image {
@@ -1438,7 +1472,7 @@ input[type="range"] {
   }
 
   .popup strong {
-    padding-right: 20px;
+    padding-right: 0;
     font-size: 0.92rem;
   }
 
@@ -1459,6 +1493,12 @@ input[type="range"] {
 
   .popup dd {
     font-size: 0.78rem;
+  }
+
+  .popup-action-button {
+    min-height: 28px;
+    padding: 0 5px;
+    font-size: 0.68rem;
   }
 
   .popup-details {

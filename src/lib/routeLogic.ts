@@ -368,13 +368,15 @@ function pickCandidates(
   maxDriveHours: number,
   tripDirection: TripDirection,
   priorityHighlightIds: string[] = [],
+  completedHighlightIds: string[] = [],
 ) {
   const maxDistance = maxDriveHours * AVERAGE_ROAD_SPEED_KMH;
   const softMaxHours = Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2);
   const priorityHighlightIdSet = new Set(priorityHighlightIds);
+  const completedHighlightIdSet = new Set(completedHighlightIds);
 
   return highlights
-    .filter((item) => item.id !== current.id)
+    .filter((item) => item.id !== current.id && !completedHighlightIdSet.has(item.id))
     .map((highlight) => {
       const distance = distanceKm(current, highlight);
       const hours = estimateDriveHours(distance);
@@ -490,9 +492,10 @@ async function buildStayOption(
   maxDriveHours: number,
   ev: EvSettings,
   priorityHighlightIds: string[],
+  completedHighlightIds: string[],
 ): Promise<RouteOption> {
   const localStyle = dayStyle === "slechtweer" ? "slechtweer" : dayStyle === "actief" ? "actief" : "rustig";
-  const localStops = pickCandidates(current, localStyle, 1.1, "flexible", priorityHighlightIds)
+  const localStops = pickCandidates(current, localStyle, 1.1, "flexible", priorityHighlightIds, completedHighlightIds)
     .filter((item) => item.hours <= 1.1)
     .filter((item) => isLocalStayCandidate(current, item.highlight))
     .filter((item) => dayStyle !== "slechtweer" || item.highlight.category !== "hike" || item.highlight.visitTimeHours <= 2.5)
@@ -567,12 +570,13 @@ export async function generateRouteOptions(
   ev: EvSettings,
   tripDirection: TripDirection = "flexible",
   priorityHighlightIds: string[] = [],
+  completedHighlightIds: string[] = [],
 ): Promise<RouteOption[]> {
-  const fallbackCandidates = pickCandidates(current, dayStyle, maxDriveHours, tripDirection, priorityHighlightIds).filter((item) =>
+  const fallbackCandidates = pickCandidates(current, dayStyle, maxDriveHours, tripDirection, priorityHighlightIds, completedHighlightIds).filter((item) =>
     isDirectionallyAllowed(current, item.highlight, tripDirection),
   );
   const fallbackHighlight = fallbackCandidates[0]?.highlight;
-  const stayOptionPromise = buildStayOption(current, dayStyle, maxDriveHours, ev, priorityHighlightIds);
+  const stayOptionPromise = buildStayOption(current, dayStyle, maxDriveHours, ev, priorityHighlightIds, completedHighlightIds);
 
   if (!fallbackHighlight) return [await stayOptionPromise];
 
@@ -599,7 +603,7 @@ export async function generateRouteOptions(
     limit: number,
     predicate?: (item: Candidate) => boolean,
   ) => {
-    const candidates = pickCandidates(current, style, driveHours, tripDirection, priorityHighlightIds)
+    const candidates = pickCandidates(current, style, driveHours, tripDirection, priorityHighlightIds, completedHighlightIds)
       .filter((item) => isDirectionallyAllowed(current, item.highlight, tripDirection))
       .filter((item) => !categories || categories.includes(item.highlight.category))
       .filter((item) => (predicate ? predicate(item) : true));
@@ -636,7 +640,7 @@ export async function generateRouteOptions(
     const chosen: Highlight[] = [];
     const usedCategories = new Set<Highlight["category"]>([target.category]);
 
-    for (const item of pickCandidates(target, style, 1.15, "flexible", priorityHighlightIds)) {
+    for (const item of pickCandidates(target, style, 1.15, "flexible", priorityHighlightIds, completedHighlightIds)) {
       const highlight = item.highlight;
       if (highlight.id === current.id || highlight.id === target.id) continue;
       if (item.hours > 1.35) continue;
