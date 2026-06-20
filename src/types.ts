@@ -19,6 +19,7 @@ export type TravelStyle =
   | "slechtweer";
 
 export type TripDirection = "outbound" | "flexible" | "returning";
+export type PersonalMapLayer = "favorites" | "completed" | "sleepBases";
 
 export interface Highlight {
   id: string;
@@ -42,6 +43,19 @@ export interface Highlight {
   imageCredit?: string;
 }
 
+export interface SleepBase {
+  id: string;
+  name: string;
+  region: string;
+  lat: number;
+  lng: number;
+  description: string;
+  bestFor: string[];
+  tripMoment: string;
+  dayTrips: string[];
+  note: string;
+}
+
 export interface EvSettings {
   practicalRangeKm: number;
   safetyMarginPercent: number;
@@ -60,6 +74,8 @@ export interface PlannerSettings {
   maxDriveHours: number;
   tripDirection: TripDirection;
   enabledCategories: Category[];
+  enabledPersonalLayers: PersonalMapLayer[];
+  mapFocusMode: boolean;
   ev: EvSettings;
   priorityHighlightIds: string[];
   completedHighlightIds: string[];

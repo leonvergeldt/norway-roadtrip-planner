@@ -1,5 +1,5 @@
 import { categoryLabels, highlights } from "../data/highlights";
-import type { PlannerSettings, TravelStyle, TripDirection } from "../types";
+import type { PersonalMapLayer, PlannerSettings, TravelStyle, TripDirection } from "../types";
 
 const STORAGE_KEY = "norway-flexible-roadtrip-planner:v1";
 
@@ -9,6 +9,8 @@ export const defaultSettings: PlannerSettings = {
   maxDriveHours: 3,
   tripDirection: "outbound",
   enabledCategories: Object.keys(categoryLabels) as PlannerSettings["enabledCategories"],
+  enabledPersonalLayers: ["favorites", "sleepBases"],
+  mapFocusMode: true,
   ev: {
     practicalRangeKm: 420,
     safetyMarginPercent: 18,
@@ -40,6 +42,12 @@ function normalizeEnabledCategories(value: Partial<PlannerSettings>["enabledCate
   return enabled.length ? enabled : defaultSettings.enabledCategories;
 }
 
+function normalizePersonalLayers(value: PersonalMapLayer[] | undefined): PersonalMapLayer[] {
+  const validLayers = new Set<PersonalMapLayer>(["favorites", "completed", "sleepBases"]);
+  const enabled = value?.filter((layer) => validLayers.has(layer)) ?? [];
+  return enabled.length ? enabled : defaultSettings.enabledPersonalLayers;
+}
+
 function normalizeHighlightIds(value: string[] | undefined, fallback: string[] = []): string[] {
   const validIds = new Set(highlights.map((highlight) => highlight.id));
   return value?.filter((id) => validIds.has(id)) ?? fallback;
@@ -64,6 +72,8 @@ export function loadSettings(): PlannerSettings {
         ...parsed.ev,
       },
       enabledCategories: normalizeEnabledCategories(parsed.enabledCategories),
+      enabledPersonalLayers: normalizePersonalLayers(parsed.enabledPersonalLayers),
+      mapFocusMode: parsed.mapFocusMode ?? defaultSettings.mapFocusMode,
       priorityHighlightIds: normalizeHighlightIds(parsed.priorityHighlightIds, defaultSettings.priorityHighlightIds),
       completedHighlightIds: normalizeHighlightIds(parsed.completedHighlightIds, []),
       recentlyViewedHighlightIds: parsed.recentlyViewedHighlightIds ?? [],

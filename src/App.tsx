@@ -24,9 +24,10 @@ import {
   Zap,
 } from "lucide-react";
 import { categoryColors, categoryLabels, highlights } from "./data/highlights";
+import { sleepBases } from "./data/sleepBases";
 import { generateRouteOptions } from "./lib/routeLogic";
 import { defaultSettings, loadSettings, saveSettings } from "./lib/storage";
-import type { Category, Highlight, PlannerSettings, RouteOption, TravelStyle, TripDirection } from "./types";
+import type { Category, Highlight, PersonalMapLayer, PlannerSettings, RouteOption, SleepBase, TravelStyle, TripDirection } from "./types";
 
 const dayStyles: Array<{ value: TravelStyle; label: string }> = [
   { value: "rustig", label: "Rustig" },
@@ -50,6 +51,12 @@ const mapLayerGroups: Array<{
   { id: "fjords-water", label: "Fjorden & water", categories: ["fjord", "kayak"] },
   { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"] },
   { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
+];
+
+const personalMapLayers: Array<{ id: PersonalMapLayer; label: string; color: string }> = [
+  { id: "favorites", label: "Favorieten", color: "#facc15" },
+  { id: "sleepBases", label: "Slaapbases", color: "#be123c" },
+  { id: "completed", label: "Gedaan", color: "#94a3b8" },
 ];
 
 const badWeatherVisibleCategories = new Set<Category>(["city", "stave_church", "scenic_route", "viewpoint"]);
@@ -206,7 +213,6 @@ function App() {
   const [isPickingStart, setIsPickingStart] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
   const [locationMessage, setLocationMessage] = useState<string | undefined>();
-  const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCachingMap, setIsCachingMap] = useState(false);
   const [isLayerWidgetOpen, setIsLayerWidgetOpen] = useState(false);
@@ -252,6 +258,10 @@ function App() {
     () => new Set(settings.enabledCategories),
     [settings.enabledCategories],
   );
+  const enabledPersonalLayerSet = useMemo(
+    () => new Set(settings.enabledPersonalLayers),
+    [settings.enabledPersonalLayers],
+  );
 
   const selectedDatasetHighlight = highlightById.get(settings.currentHighlightId) ?? highlights[0];
   const currentHighlight = settings.customStart
@@ -282,18 +292,59 @@ function App() {
     return haystack.includes(normalizedSearch);
   };
 
-  const filteredHighlights = useMemo(
-    () =>
-      highlights.filter(
-        (highlight) =>
-          enabledCategorySet.has(highlight.category) &&
-          matchesSearch(highlight) &&
-          (settings.dayStyle !== "slechtweer" ||
-            highlight.styles.includes("slechtweer") ||
-            badWeatherVisibleCategories.has(highlight.category)),
-      ),
-    [enabledCategorySet, normalizedSearch, settings.dayStyle],
-  );
+  const matchesSleepBase = (sleepBase: SleepBase) => {
+    if (!normalizedSearch) return true;
+    const haystack = [
+      sleepBase.name,
+      sleepBase.region,
+      sleepBase.description,
+      sleepBase.tripMoment,
+      sleepBase.note,
+      ...sleepBase.bestFor,
+      ...sleepBase.dayTrips,
+    ]
+      .filter(Boolean)
+      .join(" ")
+      .toLowerCase();
+    return haystack.includes(normalizedSearch);
+  };
+
+  const filteredHighlights = useMemo(() => {
+    const visible = new Map<string, Highlight>();
+    const showCompleted = enabledPersonalLayerSet.has("completed");
+
+    highlights.forEach((highlight) => {
+      const isCompleted = completedHighlightIdSet.has(highlight.id);
+      const baseVisible =
+        enabledCategorySet.has(highlight.category) &&
+        matchesSearch(highlight) &&
+        (settings.dayStyle !== "slechtweer" ||
+          highlight.styles.includes("slechtweer") ||
+          badWeatherVisibleCategories.has(highlight.category));
+
+      if (baseVisible && (!isCompleted || showCompleted)) {
+        visible.set(highlight.id, highlight);
+      }
+    });
+
+    if (enabledPersonalLayerSet.has("favorites")) {
+      highlights.forEach((highlight) => {
+        if (!priorityHighlightIdSet.has(highlight.id)) return;
+        if (!matchesSearch(highlight)) return;
+        if (completedHighlightIdSet.has(highlight.id) && !showCompleted) return;
+        visible.set(highlight.id, highlight);
+      });
+    }
+
+    return Array.from(visible.values());
+  }, [
+    completedHighlightIdSet,
+    enabledCategorySet,
+    enabledPersonalLayerSet,
+    normalizedSearch,
+    priorityHighlightIdSet,
+    settings.dayStyle,
+  ]);
   const searchResults = useMemo(
     () =>
       normalizedSearch
@@ -309,6 +360,14 @@ function App() {
             .slice(0, 6)
         : [],
     [completedHighlightIdSet, normalizedSearch, priorityHighlightIdSet],
+  );
+
+  const visibleSleepBases = useMemo(
+    () =>
+      enabledPersonalLayerSet.has("sleepBases")
+        ? sleepBases.filter(matchesSleepBase)
+        : [],
+    [enabledPersonalLayerSet, normalizedSearch],
   );
 
   const routeLine = selectedOption?.routePath?.length
@@ -352,6 +411,17 @@ function App() {
       ? settings.enabledCategories.filter((category) => !categories.includes(category))
       : Array.from(new Set([...settings.enabledCategories, ...categories]));
     updateSettings({ enabledCategories: enabled });
+  }
+
+  function togglePersonalLayer(layer: PersonalMapLayer) {
+    const enabled = enabledPersonalLayerSet.has(layer)
+      ? settings.enabledPersonalLayers.filter((item) => item !== layer)
+      : [...settings.enabledPersonalLayers, layer];
+    updateSettings({ enabledPersonalLayers: enabled });
+  }
+
+  function setMapFocusMode(mapFocusMode: boolean) {
+    updateSettings({ mapFocusMode });
   }
 
   function togglePriorityHighlight(highlightId: string) {
@@ -476,7 +546,7 @@ function App() {
 
   async function showOptions() {
     setIsPickingStart(false);
-    setIsPanelCollapsed(false);
+    setMapFocusMode(false);
     setIsRouting(true);
     try {
       const nextOptions = await generateRouteOptions(
@@ -503,6 +573,8 @@ function App() {
       priorityHighlightIds: current.priorityHighlightIds,
       completedHighlightIds: current.completedHighlightIds,
       recentlyViewedHighlightIds: current.recentlyViewedHighlightIds,
+      enabledPersonalLayers: current.enabledPersonalLayers,
+      mapFocusMode: current.mapFocusMode,
     }));
     clearCurrentRouteOptions();
   }
@@ -531,7 +603,7 @@ function App() {
   }
 
   return (
-    <main className={`app-shell ${isPanelCollapsed ? "panel-collapsed" : ""}`}>
+    <main className={`app-shell ${settings.mapFocusMode ? "panel-collapsed map-focus-mode" : ""}`}>
       <section
         className={`map-stage ${isPickingStart ? "picking-start" : ""}`}
         aria-label="Interactieve kaart van Noorwegen"
@@ -606,6 +678,7 @@ function App() {
             <MapPinned size={16} />
             <span>{isPickingStart ? "Tik kaart" : "Prik start"}</span>
           </button>
+
           {settings.customStart && (
             <button
               className="map-widget-button subtle"
@@ -632,6 +705,7 @@ function App() {
           </button>
           {isLayerWidgetOpen && (
             <div className="map-layer-popover">
+              <span className="layer-group-label">Kaartlagen</span>
               {mapLayerGroups.map((layer) => {
                 const isChecked = layer.categories.every((category) => enabledCategorySet.has(category));
                 const swatch = Array.from(new Set(layer.categories.map((category) => categoryColors[category])));
@@ -647,6 +721,18 @@ function App() {
                   </label>
                 );
               })}
+              <span className="layer-group-label">Persoonlijk</span>
+              {personalMapLayers.map((layer) => (
+                <label key={layer.id} className="map-layer-toggle">
+                  <input
+                    type="checkbox"
+                    checked={enabledPersonalLayerSet.has(layer.id)}
+                    onChange={() => togglePersonalLayer(layer.id)}
+                  />
+                  <span style={{ background: layer.color }} />
+                  {layer.label}
+                </label>
+              ))}
             </div>
           )}
         </div>
@@ -761,7 +847,7 @@ function App() {
                   </div>
                 </Popup>
               </CircleMarker>
-              {isPriority && !isCurrent && !isCompleted && (
+              {enabledPersonalLayerSet.has("favorites") && isPriority && !isCurrent && !isCompleted && (
                 <Marker
                   position={[highlight.lat, highlight.lng]}
                   icon={priorityStarIcon}
@@ -772,6 +858,56 @@ function App() {
               </Fragment>
             );
           })}
+
+          {visibleSleepBases.map((sleepBase) => (
+            <CircleMarker
+              key={sleepBase.id}
+              center={[sleepBase.lat, sleepBase.lng]}
+              radius={9}
+              pathOptions={{
+                color: "#ffffff",
+                weight: 2,
+                fillColor: "#be123c",
+                fillOpacity: 0.92,
+              }}
+            >
+              <Tooltip direction="top" offset={[0, -8]}>
+                Slaapbasis: {sleepBase.name}
+              </Tooltip>
+              <Popup>
+                <div className="popup sleepbase-popup">
+                  <div className="popup-title-row">
+                    <div>
+                      <strong>{sleepBase.name}</strong>
+                      <span>Slaapbasis - {sleepBase.region}</span>
+                    </div>
+                  </div>
+                  <p>{sleepBase.description}</p>
+                  <div className="sleepbase-tags">
+                    {sleepBase.bestFor.map((tag) => (
+                      <span key={tag}>{tag}</span>
+                    ))}
+                  </div>
+                  <details className="popup-details" open>
+                    <summary>Waarom hier slapen</summary>
+                    <p>{sleepBase.tripMoment}</p>
+                    <p className="note">{sleepBase.note}</p>
+                  </details>
+                  <details className="popup-details">
+                    <summary>Logische dagtrips</summary>
+                    <p>{sleepBase.dayTrips.join(", ")}</p>
+                  </details>
+                  <button
+                    type="button"
+                    className="text-button"
+                    onClick={() => setCustomStart(sleepBase.lat, sleepBase.lng, sleepBase.name)}
+                  >
+                    Start vanaf deze slaapbasis
+                  </button>
+                </div>
+              </Popup>
+            </CircleMarker>
+          ))}
 
           {settings.customStart && (
             <CircleMarker
@@ -857,11 +993,11 @@ function App() {
         <button
           type="button"
           className="panel-toggle"
-          onClick={() => setIsPanelCollapsed((current) => !current)}
-          aria-expanded={!isPanelCollapsed}
+          onClick={() => setMapFocusMode(!settings.mapFocusMode)}
+          aria-expanded={!settings.mapFocusMode}
         >
-          {isPanelCollapsed ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
-          <span>{isPanelCollapsed ? "Planner openen" : "Kaart groter"}</span>
+          {settings.mapFocusMode ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+          <span>{settings.mapFocusMode ? "Volledige planner" : "Kaartmodus"}</span>
           <em>
             {currentHighlight.name}
             {routeOptions.length ? ` - ${routeOptions.length} opties` : ""}
@@ -947,6 +1083,27 @@ function App() {
             ))}
           </div>
           <p className="microcopy">Gebruik Heen/noord tot Geiranger of Atlantic Road; zet Terug aan zodra Oslo, Telemark of Kristiansand weer logisch wordt.</p>
+        </section>
+
+        <section className="control-section region-mockup">
+          <div className="section-title">
+            <MapPinned size={17} />
+            <h2>Regiokaart mock-up</h2>
+          </div>
+          <div className="region-card-preview">
+            <div>
+              <span>Voorbeeld</span>
+              <strong>Hardanger</strong>
+              <p>Watervallen, fruitdorpen, fjordarmen en korte hikes. Sterk voor rustige scenic dagen of een actieve dag rond Odda.</p>
+            </div>
+            <div className="region-action-grid">
+              <button type="button">Korte stops</button>
+              <button type="button">Actief</button>
+              <button type="button">Regenproof</button>
+              <button type="button">Verder reizen</button>
+            </div>
+            <p className="microcopy"><strong>Logisch hierna:</strong> Bergen, Sognefjord of Telemark terugroute. <strong>Let op:</strong> Trolltunga is een aparte hoofddag.</p>
+          </div>
         </section>
 
 
