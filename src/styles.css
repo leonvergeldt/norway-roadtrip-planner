@@ -1111,7 +1111,12 @@ input[type="range"] {
   background: #64748b;
 }
 
-.popup-action-button.done.active svg {
+.popup-action-button span {
+  color: inherit;
+}
+
+.popup-action-button.done.active svg,
+.popup-action-button.done.active span {
   color: #ffffff;
 }
 
