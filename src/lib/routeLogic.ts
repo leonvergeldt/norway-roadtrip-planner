@@ -501,7 +501,7 @@ async function buildStayOption(
     .filter((item) => dayStyle !== "slechtweer" || item.highlight.category !== "hike" || item.highlight.visitTimeHours <= 2.5)
     .slice(0, 1)
     .map((item) => item.highlight);
-  const allStops = localStops.length ? localStops : [current];
+  const allStops = localStops.length || completedHighlightIds.includes(current.id) ? localStops : [current];
   const fallbackDistanceKm = localStops.length
     ? Math.round(localStops.reduce((total, stop) => total + distanceKm(current, stop), 0) + Math.max(0, localStops.length - 1) * 12)
     : 0;
