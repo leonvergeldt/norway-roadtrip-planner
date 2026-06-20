@@ -14,7 +14,7 @@ export const categoryColors: Record<Category, string> = {
   city: "#2563eb",
   fjord: "#0891b2",
   hike: "#16a34a",
-  stave_church: "#8b5cf6",
+  stave_church: "#2563eb",
   kayak: "#0f766e",
   viewpoint: "#ea580c",
   scenic_route: "#dc2626",

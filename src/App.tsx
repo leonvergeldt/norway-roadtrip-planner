@@ -208,6 +208,7 @@ function App() {
   const [isPanelCollapsed, setIsPanelCollapsed] = useState(false);
   const [searchQuery, setSearchQuery] = useState("");
   const [isCachingMap, setIsCachingMap] = useState(false);
+  const [isLayerWidgetOpen, setIsLayerWidgetOpen] = useState(false);
   const [offlineMapMessage, setOfflineMapMessage] = useState<string | undefined>();
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
@@ -579,6 +580,37 @@ function App() {
           )}
           {locationMessage && <div className="map-start-message">{locationMessage}</div>}
         </div>
+        <div className="map-layer-control" onMouseDown={(event) => event.stopPropagation()}>
+          <button
+            className={isLayerWidgetOpen ? "map-widget-button active" : "map-widget-button"}
+            type="button"
+            onClick={() => setIsLayerWidgetOpen((current) => !current)}
+            title="Kaartlagen aan- of uitzetten"
+            aria-expanded={isLayerWidgetOpen}
+          >
+            <Layers size={16} />
+            <span>Lagen</span>
+          </button>
+          {isLayerWidgetOpen && (
+            <div className="map-layer-popover">
+              {mapLayerGroups.map((layer) => {
+                const isChecked = layer.categories.every((category) => enabledCategorySet.has(category));
+                const swatch = Array.from(new Set(layer.categories.map((category) => categoryColors[category])));
+                return (
+                  <label key={layer.id} className="map-layer-toggle">
+                    <input
+                      type="checkbox"
+                      checked={isChecked}
+                      onChange={() => toggleLayerGroup(layer.categories)}
+                    />
+                    <span style={{ background: swatch[0] }} />
+                    {layer.label}
+                  </label>
+                );
+              })}
+            </div>
+          )}
+        </div>
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
@@ -651,17 +683,24 @@ function App() {
                         )}
                       </details>
                     )}
-                    <div className="popup-actions">
-                      <button type="button" className="text-button" onClick={() => useAsCurrent(highlight)}>
-                        Gebruik als huidige locatie
+                    <div className="popup-actions compact">
+                      <button
+                        type="button"
+                        className="popup-action-button"
+                        onClick={() => useAsCurrent(highlight)}
+                        title="Gebruik als startpunt voor dagopties"
+                      >
+                        <MapPinned size={14} />
+                        <span>Start hier</span>
                       </button>
                       <button
                         type="button"
-                        className={isPriority ? "text-button priority active" : "text-button priority"}
+                        className={isPriority ? "popup-action-button priority active" : "popup-action-button priority"}
                         onClick={() => togglePriorityHighlight(highlight.id)}
+                        title={isPriority ? "Verwijder uit zeker doen" : "Markeer als zeker doen"}
                       >
-                        <Star size={15} />
-                        {isPriority ? "Zeker doen aan" : "Zeker doen"}
+                        <Star size={14} />
+                        <span>{isPriority ? "Zeker" : "Bewaar"}</span>
                       </button>
                     </div>
                   </div>
@@ -780,8 +819,8 @@ function App() {
             <h1>Beslis per dag waar je heen gaat</h1>
             <span className={isOnline ? "connection-pill online" : "connection-pill offline"}>
               {isOnline
-                ? "Online: kaarten en OSRM-routes beschikbaar"
-                : "Offline: app/data werken, routes vallen terug op schatting"}
+                ? "Online: wegafstanden via OpenStreetMap"
+                : "Offline: app/data werken, rijtijden zijn schattingen"}
             </span>
           </div>
           <button className="icon-button" type="button" onClick={resetFilters} aria-label="Reset filters">
@@ -808,21 +847,12 @@ function App() {
             ))}
           </select>
 
-          <div className={`custom-start-box ${settings.customStart ? "active" : ""}`}>
-            <div>
-              <strong>{settings.customStart ? "Eigen startpunt actief" : "Start vanaf slaapplaats of parkeerplek"}</strong>
-              <span>
-                {settings.customStart
-                  ? `${settings.customStart.lat.toFixed(5)}, ${settings.customStart.lng.toFixed(5)}`
-                  : "Gebruik de GPS- of prikknop op de kaart voor campings, hotels of spontane overnachtingen."}
-              </span>
+          {settings.customStart && (
+            <div className="custom-start-pill">
+              <span>Eigen startpunt actief</span>
+              <button type="button" onClick={clearCustomStart}>Wis</button>
             </div>
-            {settings.customStart && (
-              <button type="button" className="text-button" onClick={clearCustomStart}>
-                Terug naar geselecteerde highlight
-              </button>
-            )}
-          </div>
+          )}
 
           <div className="range-row">
             <label htmlFor="drive-hours">Gewenste rijtijd vandaag</label>
@@ -839,27 +869,6 @@ function App() {
           />
         </section>
 
-        <section className="control-section">
-          <div className="section-title">
-            <Star size={17} />
-            <h2>Zeker doen</h2>
-          </div>
-          <p className="microcopy">
-            Gemarkeerde plekken krijgen prioriteit in de score, maar alleen als ze nog logisch zijn qua rijtijd.
-          </p>
-          <div className="priority-list">
-            {settings.priorityHighlightIds.slice(0, 8).map((id) => {
-              const highlight = highlightById.get(id);
-              if (!highlight) return null;
-              return (
-                <button key={id} type="button" onClick={() => viewHighlight(highlight)}>
-                  <Star size={13} />
-                  {highlight.name}
-                </button>
-              );
-            })}
-          </div>
-        </section>
 
         <section className="control-section">
           <div className="section-title">
@@ -899,36 +908,6 @@ function App() {
           <p className="microcopy">Gebruik Heen/noord tot Geiranger of Atlantic Road; zet Terug aan zodra Oslo, Telemark of Kristiansand weer logisch wordt.</p>
         </section>
 
-        <section className="control-section">
-          <div className="section-title">
-            <Layers size={17} />
-            <h2>Kaartlagen</h2>
-          </div>
-          <div className="layer-grid">
-            {mapLayerGroups.map((layer) => {
-              const isChecked = layer.categories.every((category) => enabledCategorySet.has(category));
-              const swatch = layer.categories.map((category) => categoryColors[category]);
-              return (
-                <label key={layer.id} className="layer-toggle">
-                  <input
-                    type="checkbox"
-                    checked={isChecked}
-                    onChange={() => toggleLayerGroup(layer.categories)}
-                  />
-                  <span
-                    style={{
-                      background:
-                        swatch.length > 1
-                          ? `linear-gradient(135deg, ${swatch[0]} 0 50%, ${swatch[1]} 50% 100%)`
-                          : swatch[0],
-                    }}
-                  />
-                  {layer.label}
-                </label>
-              );
-            })}
-          </div>
-        </section>
 
         <section className="control-section ev-box">
           <div className="section-title">
@@ -1072,7 +1051,7 @@ function App() {
                 <p>{option.rankingReason}</p>
                 <p className="route-source">
                   {option.routeSource === "osrm"
-                    ? "Afstand en rijtijd via OSRM over OpenStreetMap-wegen."
+                    ? "Afstand en rijtijd via online routeberekening over OpenStreetMap-wegen."
                     : "Afstand en rijtijd via fallbackschatting; geen wegennet gebruikt."}
                 </p>
                 {option.stops.some((stop) => hasNavigationTarget(stop.highlight)) && (
