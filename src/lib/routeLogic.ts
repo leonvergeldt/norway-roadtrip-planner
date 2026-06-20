@@ -7,12 +7,16 @@ const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 5.2;
 const MAX_ROUTE_OPTIONS = 6;
 
 const regionProgress: Record<string, number> = {
-  Sorlandet: 0,
+  Kristiansand: 0,
+  Sorlandet: 3,
+  Dalane: 16,
+  Jaeren: 18,
   Stavanger: 20,
   Rogaland: 24,
   Lysefjord: 28,
   Ryfylke: 34,
   Hardanger: 43,
+  Vestland: 46,
   Bergen: 52,
   Sognefjord: 62,
   Jostedalen: 68,
