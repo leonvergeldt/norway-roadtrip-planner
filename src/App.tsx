@@ -128,7 +128,7 @@ function formatHours(value: number) {
 function optionIcon(kind: RouteOption["kind"]) {
   if (kind === "actief") return <Mountain size={16} />;
   if (kind === "scenic") return <Compass size={16} />;
-  if (kind === "doorreis") return <Route size={16} />;
+  if (kind === "doorreis" || kind === "verder") return <Route size={16} />;
   if (kind === "slechtweer") return <CloudRain size={16} />;
   if (kind === "blijven") return <MapPinned size={16} />;
   return <MapPinned size={16} />;

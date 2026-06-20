@@ -77,6 +77,7 @@ export type RouteOptionKind =
   | "actief"
   | "scenic"
   | "doorreis"
+  | "verder"
   | "slechtweer"
   | "blijven";
 

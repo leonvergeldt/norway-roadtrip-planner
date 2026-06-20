@@ -4,7 +4,7 @@ import type { EvSettings, Highlight, RouteOption, RouteOptionKind, TravelStyle, 
 
 const AVERAGE_ROAD_SPEED_KMH = 68;
 const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 5.2;
-const MAX_ROUTE_OPTIONS = 5;
+const MAX_ROUTE_OPTIONS = 6;
 
 const regionProgress: Record<string, number> = {
   Sorlandet: 0,
@@ -110,6 +110,19 @@ function directionRhythmScore(current: Highlight, target: Highlight, tripDirecti
   return directionScore(current, target, tripDirection) < -4 ? 32 : 88;
 }
 
+function desiredTravelProgress(current: Highlight, target: Highlight, tripDirection: TripDirection) {
+  const delta = directionDelta(current, target);
+  if (tripDirection === "outbound") return delta;
+  if (tripDirection === "returning") return -delta;
+  return Math.abs(delta);
+}
+
+function travelDirectionLabel(tripDirection: TripDirection) {
+  if (tripDirection === "outbound") return "naar het noorden";
+  if (tripDirection === "returning") return "naar het zuiden";
+  return "naar een logisch volgend gebied";
+}
+
 function styleScore(highlight: Highlight, style: TravelStyle) {
   if (style === "slechtweer") {
     const badWeatherBoost = ["city", "stave_church", "scenic_route", "viewpoint"].includes(
@@ -190,7 +203,7 @@ function scoreDriveTime(driveHours: number, maxDriveHours: number, kind: RouteOp
     return clampScore(100 - driveHours * 18 - overLimitPenalty);
   }
 
-  const idealHours = kind === "doorreis" ? Math.min(3.4, maxDriveHours + 0.4) : Math.min(2.4, maxDriveHours);
+  const idealHours = kind === "doorreis" || kind === "verder" ? Math.min(3.4, maxDriveHours + 0.4) : Math.min(2.4, maxDriveHours);
   const difference = Math.abs(driveHours - idealHours);
   const overLimitPenalty = driveHours > maxDriveHours ? (driveHours - maxDriveHours) * 22 : 0;
   return clampScore(100 - difference * 24 - overLimitPenalty);
@@ -244,7 +257,7 @@ function scoreRhythm(
   if (kind === "actief" && dayStyle === "actief") score += 18;
   if (kind === "scenic" && dayStyle === "scenic") score += 18;
   if (kind === "slechtweer" && dayStyle === "slechtweer") score += 20;
-  if (kind === "doorreis" && driveHours >= 2 && driveHours <= maxDriveHours + 0.5) score += 10;
+  if ((kind === "doorreis" || kind === "verder") && driveHours >= 2 && driveHours <= maxDriveHours + 0.5) score += 10;
   if (kind === "blijven" && ["rustig", "slechtweer", "scenic"].includes(dayStyle)) score += 20;
   if (stops.some((stop) => stop.category === "hike") && stops.some((stop) => stop.category === "city")) score -= 10;
   if (driveHours > maxDriveHours) score -= 18;
@@ -657,6 +670,52 @@ export async function generateRouteOptions(
 
   const routeOptionPromises: Array<Promise<RouteOption>> = [stayOptionPromise];
 
+
+  const travelOnCandidates = pickCandidates(
+    current,
+    dayStyle,
+    Math.min(4, maxDriveHours + 0.9),
+    tripDirection,
+    priorityHighlightIds,
+    completedHighlightIds,
+  )
+    .filter((item) => isDirectionallyAllowed(current, item.highlight, tripDirection))
+    .filter((item) => desiredTravelProgress(current, item.highlight, tripDirection) >= (tripDirection === "flexible" ? 8 : 5))
+    .filter((item) => item.hours >= 1.25 || desiredTravelProgress(current, item.highlight, tripDirection) >= 12)
+    .sort((a, b) => {
+      const idealHours = Math.min(3.4, maxDriveHours + 0.35);
+      const aFit = Math.max(0, 10 - Math.abs(a.hours - idealHours) * 3);
+      const bFit = Math.max(0, 10 - Math.abs(b.hours - idealHours) * 3);
+      const aProgress = desiredTravelProgress(current, a.highlight, tripDirection);
+      const bProgress = desiredTravelProgress(current, b.highlight, tripDirection);
+      return b.score + bProgress * 1.4 + bFit - (a.score + aProgress * 1.4 + aFit);
+    });
+
+  const travelOnTarget = travelOnCandidates[0]?.highlight ?? transitTargets[0];
+  if (travelOnTarget) {
+    routeOptionPromises.push(
+      buildOption(
+        current,
+        "verder",
+        `Verder reizen vandaag richting ${travelOnTarget.name}`,
+        travelOnTarget,
+        nearbyFor(travelOnTarget, dayStyle, 1),
+        maxDriveHours,
+        ev,
+        dayStyle,
+        `Deze optie is bedoeld om de reis bewust ${travelDirectionLabel(tripDirection)} te schuiven. De stop hoeft niet de spectaculairste van de hele reis te zijn; hij moet vooral morgen betere keuzes openen zonder vandaag te zwaar te worden.`,
+        tripDirection === "returning"
+          ? "Kies dit zodra je merkt dat de terugweg serieus moet worden en je niet opnieuw noordelijk wilt uitwaaieren."
+          : tripDirection === "outbound"
+            ? "Kies dit als je west/noord momentum wilt houden en niet te lang rond dezelfde regio wilt blijven hangen."
+            : "Kies dit als je vooral een nieuw gebied wilt openen, maar de precieze reisrichting nog vrij wilt houden.",
+        "Als deze stap te functioneel voelt, kies dan 'Blijf hier nog een dag' of een korte dag met meer lokale sfeer.",
+        "Strategische verplaatsing",
+        tripDirection,
+        priorityHighlightIds,
+      ),
+    );
+  }
   shortTargets.forEach((target, index) => {
     routeOptionPromises.push(
       buildOption(
@@ -767,11 +826,41 @@ export async function generateRouteOptions(
     if (option.kind === "blijven") return true;
     if (!option.stops.every((stop) => isDirectionallyAllowed(current, stop.highlight, tripDirection))) return false;
     const hardLimit =
-      option.kind === "doorreis"
+      option.kind === "doorreis" || option.kind === "verder"
         ? Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2)
         : Math.min(4.6, maxDriveHours + 0.9);
     return option.estimatedDriveHours <= hardLimit;
   });
+  if (!viableOptions.some((option) => option.kind === "verder")) {
+    const fallbackTravelOption =
+      viableOptions.find((option) => option.kind === "doorreis") ??
+      viableOptions.find((option) =>
+        option.kind !== "blijven" &&
+        option.stops.some(
+          (stop) => desiredTravelProgress(current, stop.highlight, tripDirection) >= (tripDirection === "flexible" ? 8 : 5),
+        ),
+      );
+
+    if (fallbackTravelOption?.stops[0]) {
+      const target = fallbackTravelOption.stops[0].highlight;
+      viableOptions.unshift({
+        ...fallbackTravelOption,
+        id: `verder-${target.id}`,
+        kind: "verder",
+        title: `Verder reizen vandaag richting ${target.name}`,
+        guideText: `Deze optie is bedoeld om de reis bewust ${travelDirectionLabel(tripDirection)} te schuiven. Hij kiest bewust een haalbare stap, zodat je morgen vanuit een nieuw gebied kunt kiezen zonder vandaag te forceren.`,
+        rankingReason: "Deze optie staat apart omdat hij vooral het reisritme bewaakt: verder komen, maar binnen een haalbare dag.",
+        whenToChoose:
+          tripDirection === "returning"
+            ? "Kies dit als de terugweg richting zuiden weer leidend moet worden."
+            : tripDirection === "outbound"
+              ? "Kies dit als je momentum richting west/noord wilt houden."
+              : "Kies dit als je een nieuw gebied wilt openen zonder de hele reisrichting vast te klikken.",
+        alternative: "Als dit te functioneel voelt, kies dan 'Blijf hier nog een dag' of een korte lokale optie.",
+        activityType: "Strategische verplaatsing",
+      });
+    }
+  }
 
   const deduped: RouteOption[] = [];
   const seenIds = new Set<string>();
@@ -800,7 +889,15 @@ export async function generateRouteOptions(
     deduped.push(option);
   };
 
-  viableOptions.sort((a, b) => b.score - a.score).forEach(addIfUnique);
+  const strategicKinds = new Set<RouteOptionKind>(["blijven", "verder"]);
+  viableOptions
+    .filter((option) => strategicKinds.has(option.kind))
+    .sort((a, b) => b.score - a.score)
+    .forEach(addIfUnique);
+  viableOptions
+    .filter((option) => !strategicKinds.has(option.kind))
+    .sort((a, b) => b.score - a.score)
+    .forEach(addIfUnique);
 
   return deduped.slice(0, MAX_ROUTE_OPTIONS);
 }
