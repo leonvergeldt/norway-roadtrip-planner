@@ -612,7 +612,7 @@ function App() {
         className={`map-stage ${isPickingStart ? "picking-start" : ""}`}
         aria-label="Interactieve kaart van Noorwegen"
       >
-        <div className="map-tools" onMouseDown={(event) => event.stopPropagation()}>
+        <div className="map-control-cluster" onMouseDown={(event) => event.stopPropagation()}>
           <div className="map-search-widget">
             <Search size={17} />
             <input
@@ -627,6 +627,49 @@ function App() {
                 x
               </button>
             )}
+          </div>
+          <div className="map-action-row">
+            <button
+              className="map-action-button"
+              type="button"
+              onClick={prepareOfflineMap}
+              disabled={isCachingMap || !isOnline}
+              title="Bewaar compacte kaartbasis voor offline gebruik"
+            >
+              <Download size={16} />
+              <span>{isCachingMap ? "Opslaan..." : "Kaartbasis"}</span>
+            </button>
+            <button
+              className="map-action-button"
+              type="button"
+              onClick={useGpsAsStart}
+              disabled={isLocating}
+              title="Gebruik de GPS-locatie van dit apparaat als startpunt"
+              aria-label="Gebruik GPS als startpunt"
+            >
+              <LocateFixed size={16} />
+              <span>{isLocating ? "GPS..." : "GPS"}</span>
+            </button>
+            <button
+              className={isPickingStart ? "map-action-button active" : "map-action-button"}
+              type="button"
+              onClick={() => setIsPickingStart((current) => !current)}
+              title="Prik een slaapplaats, camping of parkeerplek op de kaart"
+              aria-label="Prik startpunt op de kaart"
+            >
+              <MapPinned size={16} />
+              <span>{isPickingStart ? "Tik kaart" : "Prik start"}</span>
+            </button>
+            <button
+              className={isLayerWidgetOpen ? "map-action-button active" : "map-action-button"}
+              type="button"
+              onClick={() => setIsLayerWidgetOpen((current) => !current)}
+              title="Kaartlagen aan- of uitzetten"
+              aria-expanded={isLayerWidgetOpen}
+            >
+              <Layers size={16} />
+              <span>Lagen</span>
+            </button>
           </div>
           {!!searchResults.length && (
             <div className="map-search-results">
@@ -646,67 +689,18 @@ function App() {
               ))}
             </div>
           )}
-        </div>
-        <div className="map-cache-control" onMouseDown={(event) => event.stopPropagation()}>
-          <button
-            className="map-cache-button"
-            type="button"
-            onClick={prepareOfflineMap}
-            disabled={isCachingMap || !isOnline}
-            title="Bewaar compacte kaartbasis voor offline gebruik"
-          >
-            <Download size={16} />
-            {isCachingMap ? "Opslaan..." : "Kaartbasis"}
-          </button>
-          {offlineMapMessage && <div className="map-cache-message">{offlineMapMessage}</div>}
-        </div>
-        <div className="map-start-control" onMouseDown={(event) => event.stopPropagation()}>
-          <button
-            className="map-widget-button"
-            type="button"
-            onClick={useGpsAsStart}
-            disabled={isLocating}
-            title="Gebruik de GPS-locatie van dit apparaat als startpunt"
-            aria-label="Gebruik GPS als startpunt"
-          >
-            <LocateFixed size={16} />
-            <span>{isLocating ? "GPS..." : "GPS"}</span>
-          </button>
-          <button
-            className={isPickingStart ? "map-widget-button active" : "map-widget-button"}
-            type="button"
-            onClick={() => setIsPickingStart((current) => !current)}
-            title="Prik een slaapplaats, camping of parkeerplek op de kaart"
-            aria-label="Prik startpunt op de kaart"
-          >
-            <MapPinned size={16} />
-            <span>{isPickingStart ? "Tik kaart" : "Prik start"}</span>
-          </button>
-
           {settings.customStart && (
-            <button
-              className="map-widget-button subtle"
-              type="button"
-              onClick={clearCustomStart}
-              title="Wis het geprikte startpunt"
-              aria-label="Wis geprikt startpunt"
-            >
-              x
-            </button>
+            <div className="map-status-row">
+              <span>Startpunt geprikt</span>
+              <button type="button" onClick={clearCustomStart}>Wis</button>
+            </div>
           )}
-          {locationMessage && <div className="map-start-message">{locationMessage}</div>}
-        </div>
-        <div className="map-layer-control" onMouseDown={(event) => event.stopPropagation()}>
-          <button
-            className={isLayerWidgetOpen ? "map-widget-button active" : "map-widget-button"}
-            type="button"
-            onClick={() => setIsLayerWidgetOpen((current) => !current)}
-            title="Kaartlagen aan- of uitzetten"
-            aria-expanded={isLayerWidgetOpen}
-          >
-            <Layers size={16} />
-            <span>Lagen</span>
-          </button>
+          {(offlineMapMessage || locationMessage) && (
+            <div className="map-cluster-message">
+              {offlineMapMessage && <p>{offlineMapMessage}</p>}
+              {locationMessage && <p>{locationMessage}</p>}
+            </div>
+          )}
           {isLayerWidgetOpen && (
             <div className="map-layer-popover">
               <span className="layer-group-label">Kaartlagen</span>
@@ -848,12 +842,13 @@ function App() {
                         <p><strong>Overslaan als:</strong> {highlight.contentTips.skipWhen}</p>
                       </details>
                     )}
-                    {(highlight.note || highlight.navigationLabel) && (
+                    {(highlight.note || highlight.navigationLabel || highlight.contentTips?.logistics) && (
                       <details className="popup-details">
                         <summary>Praktisch</summary>
                         {highlight.note && <p className="note">{highlight.note}</p>}
-                        {highlight.contentTips?.logistics && <p className="note">{highlight.contentTips.logistics}</p>}
-                        {highlight.navigationLabel && (
+                        {highlight.contentTips?.logistics ? (
+                          <p className="note">{highlight.contentTips.logistics}</p>
+                        ) : highlight.navigationLabel && (
                           <p className="note">
                             Navigatie: {highlight.navigationLabel}
                             {highlight.navigationNote ? ` - ${highlight.navigationNote}` : ""}
@@ -1224,14 +1219,15 @@ function App() {
                 </div>
               </header>
               <h3>{option.title}</h3>
-              <p>{option.guideText}</p>
+              <p className="route-guide">{option.guideText}</p>
               {!!option.offlineLabels.length && (
                 <div className="route-labels" aria-label="Offline route-indicaties">
-                  {option.offlineLabels.map((label) => (
+                  {option.offlineLabels.slice(0, 3).map((label) => (
                     <span key={label.label} className={`route-label ${label.tone}`} title={label.description}>
                       {label.label}
                     </span>
                   ))}
+                  {option.offlineLabels.length > 3 && <span className="route-label neutral">+{option.offlineLabels.length - 3}</span>}
                 </div>
               )}
               {option.stops[0]?.highlight.imageUrl && (
@@ -1259,7 +1255,7 @@ function App() {
                   <dt>Afstand</dt>
                   <dd>{option.estimatedDistanceKm} km</dd>
                 </div>
-                <div>
+                <div className="stat-type">
                   <dt>Type</dt>
                   <dd>{option.activityType}</dd>
                 </div>
@@ -1315,8 +1311,8 @@ function App() {
                 {option.evMessage}
               </div>
               <div className="stops">
-                {option.stops.map((stop) => (
-                                    <button
+                {option.stops.slice(0, 3).map((stop) => (
+                  <button
                     key={stop.highlight.id}
                     type="button"
                     onClick={(event) => {
@@ -1342,6 +1338,9 @@ function App() {
                     <span>{stop.distanceFromStartKm} km</span>
                   </button>
                 ))}
+                {option.stops.length > 3 && (
+                  <div className="more-stops-note">+{option.stops.length - 3} extra stop in details</div>
+                )}
               </div>
               <details className="more-info">
                 <summary>Waarom deze stops?</summary>
