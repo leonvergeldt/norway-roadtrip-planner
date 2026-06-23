@@ -88,6 +88,12 @@ export interface RouteStop {
   distanceFromStartKm: number;
 }
 
+export interface OfflineRouteLabel {
+  label: string;
+  description: string;
+  tone: "good" | "watch" | "caution" | "neutral";
+}
+
 export type RouteOptionKind =
   | "kort"
   | "actief"
@@ -111,6 +117,7 @@ export interface RouteOption {
   routePath?: Array<[number, number]>;
   stops: RouteStop[];
   activityType: string;
+  offlineLabels: OfflineRouteLabel[];
   score: number;
   scoreBreakdown: {
     driveTime: number;

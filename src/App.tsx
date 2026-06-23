@@ -1208,6 +1208,15 @@ function App() {
               </header>
               <h3>{option.title}</h3>
               <p>{option.guideText}</p>
+              {!!option.offlineLabels.length && (
+                <div className="route-labels" aria-label="Offline route-indicaties">
+                  {option.offlineLabels.map((label) => (
+                    <span key={label.label} className={`route-label ${label.tone}`} title={label.description}>
+                      {label.label}
+                    </span>
+                  ))}
+                </div>
+              )}
               {option.stops[0]?.highlight.imageUrl && (
                 <div className="route-visual">
                   <img
@@ -1257,6 +1266,19 @@ function App() {
                     De zwarte routelijn stopt bij praktische navigatiepunten. De gekleurde landmark-marker kan dus
                     iets verderop liggen.
                   </p>
+                )}
+                {!!option.offlineLabels.length && (
+                  <div className="offline-label-panel">
+                    <strong>Offline route-indicatie</strong>
+                    <ul>
+                      {option.offlineLabels.map((label) => (
+                        <li key={label.label}>
+                          <span className={`route-label ${label.tone}`}>{label.label}</span>
+                          <p>{label.description}</p>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 <div className="score-grid" aria-label="Score-opbouw">
                   <span>Rijtijd <strong>{option.scoreBreakdown.driveTime}</strong></span>

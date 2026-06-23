@@ -194,6 +194,128 @@ function routeEvMessage(distance: number, ev: EvSettings, mountainRoute: boolean
   };
 }
 
+const officialScenicRouteIds = new Set([
+  "aurlandsfjellet",
+  "sognefjellet",
+  "gaularfjellet-vik",
+  "ryfylke-scenic-route",
+  "hardangervidda-natursenter",
+  "atlantic-road",
+]);
+
+const mountainRouteRegions = new Set([
+  "Geiranger",
+  "Jotunheimen",
+  "Jostedalen",
+  "Nordfjord",
+  "Romsdal",
+  "More og Romsdal",
+  "Dovrefjell",
+  "Gudbrandsdalen",
+]);
+
+const ferrySensitiveRegions = new Set([
+  "Geiranger",
+  "Sognefjord",
+  "Sunnmore",
+  "More og Romsdal",
+  "Hardanger",
+  "Ryfylke",
+]);
+
+function textMentionsLogistics(stop: Highlight) {
+  const text = [
+    stop.name,
+    stop.description,
+    stop.note,
+    stop.navigationNote,
+    ...(stop.detail ?? []),
+  ]
+    .filter(Boolean)
+    .join(" ")
+    .toLowerCase();
+
+  return text.includes("ferry") || text.includes("ferje") || text.includes("boot");
+}
+
+function buildOfflineLabels(
+  kind: RouteOptionKind,
+  stops: Highlight[],
+  estimatedDriveHours: number,
+  estimatedDistanceKm: number,
+  routeSource: RouteOption["routeSource"],
+): RouteOption["offlineLabels"] {
+  const labels: RouteOption["offlineLabels"] = [];
+  const add = (label: RouteOption["offlineLabels"][number]) => {
+    if (!labels.some((item) => item.label === label.label)) labels.push(label);
+  };
+
+  if (routeSource === "estimated") {
+    add({
+      label: "Offline schatting",
+      description: "Geen online wegroute beschikbaar; rijtijd en afstand zijn dan een lokale benadering.",
+      tone: "caution",
+    });
+  }
+
+  if (stops.some((stop) => stop.category === "scenic_route" || officialScenicRouteIds.has(stop.id))) {
+    add({
+      label: "Scenic route",
+      description: "Handmatig gelabeld als landschappelijke route of scenic hoofdmoment.",
+      tone: "good",
+    });
+  }
+
+  if (stops.some((stop) => mountainRouteRegions.has(stop.region) || stop.id.includes("fjell") || stop.id === "dalsnibba")) {
+    add({
+      label: "Bergroute",
+      description: "Reken op langzamer rijden, hoogteverschil en extra EV-marge bij slecht weer.",
+      tone: "watch",
+    });
+  }
+
+  if (
+    stops.some((stop) => ferrySensitiveRegions.has(stop.region) || textMentionsLogistics(stop)) &&
+    estimatedDistanceKm > 70
+  ) {
+    add({
+      label: "Ferry/logistiek",
+      description: "Controleer onderweg ferry, boot of routekeuze; dit label gebruikt geen live dienstregeling.",
+      tone: "watch",
+    });
+  }
+
+  if (stops.some((stop) => stop.id === "atlantic-road")) {
+    add({
+      label: "Ambitieuze noordlus",
+      description: "Mooi, maar alleen logisch als de reis al ruim noordelijk genoeg zit.",
+      tone: "caution",
+    });
+  }
+
+  if ((kind === "doorreis" || kind === "verder") && estimatedDriveHours >= 1.5) {
+    add({
+      label: "Doorreisritme",
+      description: "Deze optie is vooral bedoeld om de reisfase op te schuiven zonder een strak dagschema.",
+      tone: "neutral",
+    });
+  }
+
+  if (
+    kind === "slechtweer" ||
+    (stops.some((stop) => stop.styles.includes("slechtweer") || stop.category === "city" || stop.category === "stave_church") &&
+      !stops.some((stop) => stop.category === "hike" && stop.visitTimeHours > 3))
+  ) {
+    add({
+      label: "Regenproof",
+      description: "Relatief geschikt bij regen, lage wolken of vermoeidheid; geen live weercheck.",
+      tone: "good",
+    });
+  }
+
+  return labels.slice(0, 4);
+}
+
 function clampScore(value: number) {
   return Math.max(0, Math.min(100, Math.round(value)));
 }
@@ -496,6 +618,13 @@ async function buildOption(
       distanceFromStartKm: Math.round(distanceKm(current, highlight)),
     })),
     activityType,
+    offlineLabels: buildOfflineLabels(
+      kind,
+      allStops,
+      estimatedDriveHours,
+      estimatedDistanceKm,
+      routeEstimate.source,
+    ),
     score: scoreDetails.score,
     scoreBreakdown: scoreDetails.scoreBreakdown,
     scoreNotes: scoreDetails.scoreNotes,
@@ -571,6 +700,13 @@ async function buildStayOption(
       distanceFromStartKm: Math.round(distanceKm(current, highlight)),
     })),
     activityType: "Rustdag lokaal",
+    offlineLabels: buildOfflineLabels(
+      "blijven",
+      allStops,
+      routeEstimate.durationHours,
+      routeEstimate.distanceKm,
+      routeEstimate.source,
+    ),
     score: clampScore(scoreDetails.score + (dayStyle === "rustig" || dayStyle === "slechtweer" ? 8 : 3)),
     scoreBreakdown: scoreDetails.scoreBreakdown,
     scoreNotes: [
