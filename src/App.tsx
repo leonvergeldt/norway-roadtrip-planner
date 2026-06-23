@@ -283,6 +283,10 @@ function App() {
       highlight.description,
       highlight.note,
       ...(highlight.detail ?? []),
+      highlight.contentTips?.bestMoment,
+      highlight.contentTips?.skipWhen,
+      highlight.contentTips?.logistics,
+      ...(highlight.contentTips?.fits ?? []),
       ...highlight.styles,
       highlight.importance,
     ]
@@ -832,10 +836,23 @@ function App() {
                         ))}
                       </details>
                     )}
+                    {highlight.contentTips && (
+                      <details className="popup-details">
+                        <summary>Wanneer wel/niet</summary>
+                        <div className="content-fit-tags">
+                          {highlight.contentTips.fits.map((label) => (
+                            <span key={label}>{label}</span>
+                          ))}
+                        </div>
+                        <p><strong>Beste moment:</strong> {highlight.contentTips.bestMoment}</p>
+                        <p><strong>Overslaan als:</strong> {highlight.contentTips.skipWhen}</p>
+                      </details>
+                    )}
                     {(highlight.note || highlight.navigationLabel) && (
                       <details className="popup-details">
                         <summary>Praktisch</summary>
                         {highlight.note && <p className="note">{highlight.note}</p>}
+                        {highlight.contentTips?.logistics && <p className="note">{highlight.contentTips.logistics}</p>}
                         {highlight.navigationLabel && (
                           <p className="note">
                             Navigatie: {highlight.navigationLabel}
@@ -1339,6 +1356,11 @@ function App() {
                         {(stop.highlight.detail ?? [stop.highlight.description]).slice(0, 2).map((paragraph) => (
                           <p key={paragraph}>{paragraph}</p>
                         ))}
+                        {stop.highlight.contentTips && (
+                          <p className="stop-tip">
+                            <strong>Beste moment:</strong> {stop.highlight.contentTips.bestMoment}
+                          </p>
+                        )}
                       </div>
                     </article>
                   ))}

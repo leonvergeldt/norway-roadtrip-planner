@@ -1173,6 +1173,13 @@ input[type="range"] {
   line-height: 1.35;
 }
 
+.stop-tip {
+  margin-top: 6px;
+  padding: 6px 7px;
+  background: #ffffff;
+  border-radius: 6px;
+}
+
 .stop-context p + p {
   margin-top: 5px;
 }
@@ -1412,6 +1419,24 @@ input[type="range"] {
 
 .popup-details[open] summary::after {
   content: "-";
+}
+
+.content-fit-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.content-fit-tags span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 21px;
+  padding: 3px 7px;
+  color: #0f3f3a;
+  background: #e7f5f2;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 900;
 }
 
 .leaflet-popup-content-wrapper {

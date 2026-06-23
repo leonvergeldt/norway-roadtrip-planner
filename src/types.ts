@@ -38,6 +38,12 @@ export interface Highlight {
   styles: TravelStyle[];
   note?: string;
   detail?: string[];
+  contentTips?: {
+    bestMoment: string;
+    skipWhen: string;
+    fits: string[];
+    logistics: string;
+  };
   imageUrl?: string;
   imageAlt?: string;
   imageCredit?: string;

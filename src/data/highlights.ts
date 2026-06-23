@@ -563,6 +563,87 @@ function buildDetail(highlight: Highlight) {
   ];
 }
 
+function bestMomentFor(highlight: Highlight) {
+  if (highlight.styles.includes("slechtweer") || highlight.category === "city" || highlight.category === "stave_church") {
+    return "Goed flexibel inzetbaar, ook bij wisselweer. Ochtend is rustiger; middag werkt vaak beter als je eerst moet rijden.";
+  }
+
+  if (highlight.category === "hike") {
+    return "Vroeg starten bij stabiel weer. Houd voldoende marge voor parkeren, omkeren en een rustige afdaling.";
+  }
+
+  if (highlight.category === "viewpoint" || highlight.category === "scenic_route" || highlight.category === "fjord") {
+    return "Beste bij redelijk zicht. Ochtend of avondlicht is vaak mooier; bij lage wolken liever kort houden of doorschuiven.";
+  }
+
+  if (highlight.category === "kayak") {
+    return "Alleen plannen bij rustig weer en voldoende energie. Check lokale beschikbaarheid of boeking voordat je erop rekent.";
+  }
+
+  return "Gebruik als flexibele stop wanneer route, weer en energie goed voelen.";
+}
+
+function skipAdviceFor(highlight: Highlight) {
+  if (highlight.importance === "must-see") {
+    return "Niet overslaan als dit een persoonlijke prioriteit is, maar wel verplaatsen bij slecht zicht, harde wind of te weinig energie.";
+  }
+
+  if (highlight.category === "hike") {
+    return "Overslaan bij lage wolken, regen, harde wind, late start of vermoeidheid.";
+  }
+
+  if (highlight.category === "viewpoint" || highlight.category === "scenic_route") {
+    return "Overslaan of kort houden als het zicht dicht zit of de rit vandaag al vol genoeg is.";
+  }
+
+  if (highlight.importance === "optioneel") {
+    return "Overslaan als het niet op de route ligt of als een rustiger tempo vandaag belangrijker is.";
+  }
+
+  return "Overslaan wanneer het te veel omrijden vraagt ten opzichte van de dagenergie.";
+}
+
+function fitLabelsFor(highlight: Highlight) {
+  const labels = new Set<string>();
+
+  if (highlight.styles.includes("rustig") || highlight.visitTimeHours <= 2.5) labels.add("rustig");
+  if (highlight.styles.includes("actief") || highlight.category === "hike" || highlight.category === "kayak") labels.add("actief");
+  if (highlight.styles.includes("slechtweer") || highlight.category === "city" || highlight.category === "stave_church") labels.add("regen");
+  if (highlight.styles.includes("scenic") || ["fjord", "viewpoint", "scenic_route"].includes(highlight.category)) labels.add("scenic");
+  if (highlight.importance === "must-see") labels.add("prioriteit");
+
+  return Array.from(labels).slice(0, 4);
+}
+
+function logisticsFor(highlight: Highlight) {
+  if (highlight.navigationLabel) {
+    return `Navigatiepunt ingesteld: ${highlight.navigationLabel}. ${highlight.navigationNote ?? "Controleer lokaal parkeren, drukte en actuele omstandigheden."}`;
+  }
+
+  if (highlight.category === "hike") {
+    return "Parkeren, startpunt en condities vooraf checken; behandel dit als activiteit, niet als spontane fotostop.";
+  }
+
+  if (highlight.category === "city") {
+    return "Gebruik centrumparking of OV waar logisch; stadslogistiek kost vaak meer tijd dan de afstand doet vermoeden.";
+  }
+
+  if (highlight.category === "scenic_route") {
+    return "Routekwaliteit is handmatig ingeschat. Check actuele wegstatus, seizoensopening en EV-marge bij twijfel.";
+  }
+
+  return "Gebruik als flexibele stop; controleer ter plekke parkeren, drukte en openingstijden waar relevant.";
+}
+
+function buildContentTips(highlight: Highlight) {
+  return {
+    bestMoment: bestMomentFor(highlight),
+    skipWhen: skipAdviceFor(highlight),
+    fits: fitLabelsFor(highlight),
+    logistics: logisticsFor(highlight),
+  };
+}
+
 const navigationTargets: Record<
   string,
   Pick<Highlight, "navigationLat" | "navigationLng" | "navigationLabel" | "navigationNote">
@@ -2808,6 +2889,7 @@ export const highlights: Highlight[] = rawHighlights.map((highlight) => {
   return {
     ...highlight,
     detail: buildDetail(highlight),
+    contentTips: buildContentTips({ ...highlight, ...navigationTargets[highlight.id] }),
     imageUrl,
     imageAlt: `Sfeerbeeld bij ${highlight.name}`,
     imageCredit: photoCredits[highlight.id] ?? (imageUrl.startsWith("https://") ? "Foto: Wikimedia Commons" : "Offline sfeerbeeld"),

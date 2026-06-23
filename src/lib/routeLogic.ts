@@ -3,7 +3,8 @@ import { getRoadRouteEstimate } from "./routingService";
 import type { EvSettings, Highlight, RouteOption, RouteOptionKind, TravelStyle, TripDirection } from "../types";
 
 const AVERAGE_ROAD_SPEED_KMH = 68;
-const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 5.2;
+const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 4.75;
+const NORMAL_RECOMMENDATION_LIMIT_HOURS = 4.25;
 const MAX_ROUTE_OPTIONS = 6;
 
 const regionProgress: Record<string, number> = {
@@ -513,6 +514,7 @@ function pickCandidates(
 ) {
   const maxDistance = maxDriveHours * AVERAGE_ROAD_SPEED_KMH;
   const softMaxHours = Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2);
+  const priorityMaxHours = Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 0.9);
   const priorityHighlightIdSet = new Set(priorityHighlightIds);
   const completedHighlightIdSet = new Set(completedHighlightIds);
 
@@ -531,7 +533,7 @@ function pickCandidates(
         directionScore(current, highlight, tripDirection);
       return { highlight, distance, hours, score };
     })
-    .filter((item) => item.hours <= softMaxHours || priorityHighlightIdSet.has(item.highlight.id))
+    .filter((item) => item.hours <= softMaxHours || (priorityHighlightIdSet.has(item.highlight.id) && item.hours <= priorityMaxHours))
     .sort((a, b) => b.score - a.score);
 }
 
@@ -544,9 +546,9 @@ function optionWarnings(
   const warnings: string[] = [];
 
   if (driveHours > maxDriveHours) warnings.push("Ambitieus voor je ingestelde rijtijd.");
-  if (driveHours > 4) warnings.push("Veel rijden; alleen logisch als doorreisdag.");
+  if (driveHours > NORMAL_RECOMMENDATION_LIMIT_HOURS) warnings.push("Veel rijden; kies dit alleen als de verplaatsing vandaag echt nodig is.");
   if (driveHours > ABSOLUTE_RECOMMENDATION_LIMIT_HOURS) {
-    warnings.push("Te lang voor een normale dagkeuze; splits deze route op met een tussenstop.");
+    warnings.push("Te lang voor deze planner; splits deze route op met een tussenstop.");
   }
   if (stops.some((stop) => stop.category === "hike")) {
     warnings.push("Beter alleen bij goed weer en genoeg energie.");
@@ -967,10 +969,11 @@ export async function generateRouteOptions(
   const viableOptions = options.filter((option) => {
     if (option.kind === "blijven") return true;
     if (!option.stops.every((stop) => isDirectionallyAllowed(current, stop.highlight, tripDirection))) return false;
+    if (option.estimatedDriveHours > ABSOLUTE_RECOMMENDATION_LIMIT_HOURS) return false;
     const hardLimit =
       option.kind === "doorreis" || option.kind === "verder"
-        ? Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 1.2)
-        : Math.min(4.6, maxDriveHours + 0.9);
+        ? Math.min(ABSOLUTE_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 0.75)
+        : Math.min(NORMAL_RECOMMENDATION_LIMIT_HOURS, maxDriveHours + 0.55);
     return option.estimatedDriveHours <= hardLimit;
   });
   if (!viableOptions.some((option) => option.kind === "verder")) {
@@ -1007,7 +1010,21 @@ export async function generateRouteOptions(
   const deduped: RouteOption[] = [];
   const seenIds = new Set<string>();
   const seenPrimaryTargets = new Set<string>();
+  const seenPrimaryRegionKinds = new Set<string>();
   const seenStopSets = new Set<string>();
+
+  const stopIdsFor = (option: RouteOption) => new Set(option.stops.map((stop) => stop.highlight.id));
+  const hasHeavyStopOverlap = (option: RouteOption) => {
+    const nextIds = stopIdsFor(option);
+    if (!nextIds.size) return false;
+
+    return deduped.some((existing) => {
+      if (existing.kind === "blijven" || option.kind === "blijven") return false;
+      const existingIds = stopIdsFor(existing);
+      const overlap = Array.from(nextIds).filter((id) => existingIds.has(id)).length;
+      return overlap / Math.min(nextIds.size, existingIds.size) >= 0.67;
+    });
+  };
 
   const addIfUnique = (option: RouteOption) => {
     if (seenIds.has(option.id)) return;
@@ -1024,9 +1041,15 @@ export async function generateRouteOptions(
 
     const primaryTarget = option.stops[0]?.highlight.id;
     if (!primaryTarget || seenPrimaryTargets.has(primaryTarget) || seenStopSets.has(stopSet)) return;
+    if (hasHeavyStopOverlap(option)) return;
+
+    const primaryRegion = option.stops[0]?.highlight.region;
+    const regionKindKey = `${option.kind}-${primaryRegion}`;
+    if (primaryRegion && seenPrimaryRegionKinds.has(regionKindKey)) return;
 
     seenIds.add(option.id);
     seenPrimaryTargets.add(primaryTarget);
+    if (primaryRegion) seenPrimaryRegionKinds.add(regionKindKey);
     seenStopSets.add(stopSet);
     deduped.push(option);
   };
