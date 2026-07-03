@@ -1,19 +1,19 @@
 import type { Category, Highlight } from "../types";
 
 export const categoryLabels: Record<Category, string> = {
-  city: "Steden",
-  fjord: "Fjorden",
-  hike: "Hikes",
-  stave_church: "Staafkerken",
-  kayak: "Kano/kajak",
-  viewpoint: "Uitzichtpunten",
-  scenic_route: "Scenic routes",
+  city: "Stad & cultuur",
+  fjord: "Fjord & water",
+  hike: "Hike",
+  stave_church: "Staafkerk",
+  kayak: "Wateractiviteit",
+  viewpoint: "Uitzichtpunt",
+  scenic_route: "Scenic route",
 };
 
 export const categoryColors: Record<Category, string> = {
   city: "#2563eb",
-  fjord: "#0891b2",
-  hike: "#16a34a",
+  fjord: "#0284c7",
+  hike: "#15803d",
   stave_church: "#2563eb",
   kayak: "#0f766e",
   viewpoint: "#ea580c",

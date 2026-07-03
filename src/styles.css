@@ -211,10 +211,21 @@ button {
   accent-color: #0f766e;
 }
 
-.map-layer-toggle span {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
+.map-layer-toggle .layer-symbol {
+  display: grid;
+  flex: 0 0 auto;
+  width: 22px;
+  height: 22px;
+  place-items: center;
+  color: #ffffff;
+  border: 1px solid rgba(255, 255, 255, 0.9);
+  border-radius: 7px;
+  box-shadow: 0 5px 12px rgba(23, 32, 51, 0.14);
+}
+
+.map-layer-toggle .layer-symbol svg {
+  width: 13px;
+  height: 13px;
 }
 
 .map-cache-message {
@@ -224,19 +235,111 @@ button {
   line-height: 1.35;
 }
 
-.priority-star-marker {
+.map-symbol-marker {
   display: grid;
-  width: 18px !important;
-  height: 18px !important;
+  width: 38px !important;
+  height: 38px !important;
   place-items: center;
-  color: #facc15;
-  font-size: 15px;
-  line-height: 1;
-  text-shadow:
-    0 1px 2px rgba(17, 24, 39, 0.75),
-    0 0 3px rgba(255, 255, 255, 0.95);
-  transform: translate(7px, -8px);
-  pointer-events: none;
+  background: transparent;
+  border: 0;
+}
+
+.map-symbol-marker__inner {
+  position: relative;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  color: #ffffff;
+  background: var(--marker-color);
+  border: 2px solid #ffffff;
+  border-radius: 11px;
+  box-shadow:
+    0 9px 18px rgba(23, 32, 51, 0.22),
+    0 1px 0 rgba(255, 255, 255, 0.5) inset;
+  transform: rotate(-3deg);
+  transition:
+    opacity 160ms ease,
+    filter 160ms ease,
+    transform 160ms ease,
+    box-shadow 160ms ease;
+}
+
+.map-symbol-marker__inner svg {
+  width: 16px;
+  height: 16px;
+  stroke: currentColor;
+}
+
+.map-symbol-marker.active .map-symbol-marker__inner {
+  width: 36px;
+  height: 36px;
+  color: #172033;
+  background: #facc15;
+  border-color: #172033;
+  border-radius: 12px;
+  box-shadow:
+    0 12px 22px rgba(23, 32, 51, 0.28),
+    0 0 0 4px rgba(250, 204, 21, 0.32);
+  transform: rotate(0deg);
+}
+
+.map-symbol-marker.must-see .map-symbol-marker__inner {
+  border-color: #fff7ed;
+  box-shadow:
+    0 10px 20px rgba(23, 32, 51, 0.24),
+    0 0 0 3px rgba(255, 255, 255, 0.34);
+}
+
+.map-symbol-marker.muted .map-symbol-marker__inner {
+  opacity: 0.48;
+  filter: saturate(0.55);
+}
+
+.map-symbol-marker.sleepbase-marker .map-symbol-marker__inner {
+  border-radius: 999px;
+}
+
+.map-symbol-marker.custom-start-marker .map-symbol-marker__inner {
+  color: #172033;
+  border-color: #172033;
+  transform: rotate(0deg);
+}
+
+.map-symbol-marker.navigation-target-marker .map-symbol-marker__inner {
+  width: 28px;
+  height: 28px;
+  color: #0f766e;
+  background: #ffffff;
+  border-color: #0f766e;
+  border-radius: 999px;
+  box-shadow: 0 7px 14px rgba(15, 118, 110, 0.22);
+  transform: rotate(0deg);
+}
+
+.map-symbol-marker.navigation-target-marker .map-symbol-marker__inner svg {
+  width: 14px;
+  height: 14px;
+}
+
+.map-symbol-marker__badge {
+  position: absolute;
+  top: -7px;
+  right: -7px;
+  display: grid;
+  width: 18px;
+  height: 18px;
+  place-items: center;
+  color: #172033;
+  background: #facc15;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow: 0 4px 10px rgba(23, 32, 51, 0.2);
+}
+
+.map-symbol-marker__badge svg {
+  width: 10px;
+  height: 10px;
 }
 
 .leaflet-container {

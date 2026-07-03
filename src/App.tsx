@@ -1,27 +1,37 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from "react";
-import { CircleMarker, MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
+import { renderToStaticMarkup } from "react-dom/server";
+import { MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import { divIcon } from "leaflet";
-import type { CircleMarker as LeafletCircleMarker, LatLngExpression } from "leaflet";
+import type { Marker as LeafletMarker, LatLngExpression } from "leaflet";
 import {
   BatteryCharging,
+  Binoculars,
+  Building2,
   CheckCircle2,
   ChevronDown,
   ChevronUp,
+  Church,
   CloudRain,
   Compass,
   Download,
   Flag,
+  Footprints,
   Gauge,
+  Home,
   LocateFixed,
   Layers,
+  MapPin,
   MapPinned,
   Mountain,
+  Navigation,
   RotateCcw,
   Route,
   Search,
   Sparkles,
   Star,
+  Waves,
   Zap,
+  type LucideIcon,
 } from "lucide-react";
 import { categoryColors, categoryLabels, highlights } from "./data/highlights";
 import { sleepBases } from "./data/sleepBases";
@@ -46,28 +56,92 @@ const mapLayerGroups: Array<{
   id: string;
   label: string;
   categories: Category[];
+  color: string;
+  icon: LucideIcon;
 }> = [
-  { id: "city-culture", label: "Steden & cultuur", categories: ["city", "stave_church"] },
-  { id: "fjords-water", label: "Fjorden & water", categories: ["fjord", "kayak"] },
-  { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"] },
-  { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"] },
+  { id: "city-culture", label: "Stad & cultuur", categories: ["city", "stave_church"], color: "#2563eb", icon: Building2 },
+  { id: "fjords-water", label: "Fjord & water", categories: ["fjord", "kayak"], color: "#0284c7", icon: Waves },
+  { id: "hikes-nature", label: "Hikes & natuur", categories: ["hike"], color: "#15803d", icon: Footprints },
+  { id: "views-routes", label: "Uitzicht & routes", categories: ["viewpoint", "scenic_route"], color: "#ea580c", icon: Binoculars },
 ];
 
-const personalMapLayers: Array<{ id: PersonalMapLayer; label: string; color: string }> = [
-  { id: "favorites", label: "Favorieten", color: "#facc15" },
-  { id: "sleepBases", label: "Slaapbases", color: "#be123c" },
-  { id: "completed", label: "Gedaan", color: "#94a3b8" },
+const personalMapLayers: Array<{ id: PersonalMapLayer; label: string; color: string; icon: LucideIcon }> = [
+  { id: "favorites", label: "Zeker doen", color: "#ca8a04", icon: Star },
+  { id: "sleepBases", label: "Slaapbases", color: "#be123c", icon: Home },
+  { id: "completed", label: "Gedaan", color: "#94a3b8", icon: CheckCircle2 },
 ];
 
 const badWeatherVisibleCategories = new Set<Category>(["city", "stave_church", "scenic_route", "viewpoint"]);
 const highlightById = new Map(highlights.map((highlight) => [highlight.id, highlight]));
 
-const priorityStarIcon = divIcon({
-  className: "priority-star-marker",
-  html: "&#9733;",
-  iconSize: [18, 18],
-  iconAnchor: [9, 9],
-});
+const markerIconByCategory: Record<Category, LucideIcon> = {
+  city: Building2,
+  fjord: Waves,
+  hike: Footprints,
+  stave_church: Church,
+  kayak: Waves,
+  viewpoint: Binoculars,
+  scenic_route: Route,
+};
+
+function renderIconMarkup(Icon: LucideIcon, size = 16) {
+  return renderToStaticMarkup(<Icon size={size} strokeWidth={2.55} aria-hidden="true" focusable="false" />);
+}
+
+function mapSymbolIcon({
+  Icon,
+  BadgeIcon,
+  color,
+  active = false,
+  muted = false,
+  className = "",
+}: {
+  Icon: LucideIcon;
+  BadgeIcon?: LucideIcon;
+  color: string;
+  active?: boolean;
+  muted?: boolean;
+  className?: string;
+}) {
+  const classes = ["map-symbol-marker", active ? "active" : "", muted ? "muted" : "", className]
+    .filter(Boolean)
+    .join(" ");
+  const badge = BadgeIcon
+    ? `<span class="map-symbol-marker__badge">${renderIconMarkup(BadgeIcon, 10)}</span>`
+    : "";
+
+  return divIcon({
+    className: classes,
+    html: `<div class="map-symbol-marker__inner" style="--marker-color:${color}">${renderIconMarkup(Icon)}${badge}</div>`,
+    iconSize: [38, 38],
+    iconAnchor: [19, 19],
+    popupAnchor: [0, -18],
+    tooltipAnchor: [0, -18],
+  });
+}
+
+function highlightMapIcon({
+  highlight,
+  isCurrent,
+  isSelected,
+  isPriority,
+  isCompleted,
+}: {
+  highlight: Highlight;
+  isCurrent: boolean;
+  isSelected: boolean;
+  isPriority: boolean;
+  isCompleted: boolean;
+}) {
+  return mapSymbolIcon({
+    Icon: markerIconByCategory[highlight.category],
+    BadgeIcon: isCompleted ? CheckCircle2 : isPriority ? Star : undefined,
+    color: isCompleted ? "#94a3b8" : categoryColors[highlight.category],
+    active: isCurrent || isSelected,
+    muted: isCompleted,
+    className: highlight.importance === "must-see" ? "must-see" : "",
+  });
+}
 
 function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
   const map = useMap();
@@ -203,7 +277,7 @@ function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): 
 }
 
 function App() {
-  const markerRefs = useRef<Record<string, LeafletCircleMarker | null>>({});
+  const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
   const [settings, setSettings] = useState<PlannerSettings>(() => loadSettings());
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
   const [selectedOptionId, setSelectedOptionId] = useState<string | undefined>(settings.savedTodayOptionId);
@@ -706,7 +780,7 @@ function App() {
               <span className="layer-group-label">Kaartlagen</span>
               {mapLayerGroups.map((layer) => {
                 const isChecked = layer.categories.every((category) => enabledCategorySet.has(category));
-                const swatch = Array.from(new Set(layer.categories.map((category) => categoryColors[category])));
+                const LayerIcon = layer.icon;
                 return (
                   <label key={layer.id} className="map-layer-toggle">
                     <input
@@ -714,23 +788,30 @@ function App() {
                       checked={isChecked}
                       onChange={() => toggleLayerGroup(layer.categories)}
                     />
-                    <span style={{ background: swatch[0] }} />
+                    <span className="layer-symbol" style={{ backgroundColor: layer.color }}>
+                      <LayerIcon size={13} strokeWidth={2.6} />
+                    </span>
                     {layer.label}
                   </label>
                 );
               })}
               <span className="layer-group-label">Persoonlijk</span>
-              {personalMapLayers.map((layer) => (
-                <label key={layer.id} className="map-layer-toggle">
-                  <input
-                    type="checkbox"
-                    checked={enabledPersonalLayerSet.has(layer.id)}
-                    onChange={() => togglePersonalLayer(layer.id)}
-                  />
-                  <span style={{ background: layer.color }} />
-                  {layer.label}
-                </label>
-              ))}
+              {personalMapLayers.map((layer) => {
+                const LayerIcon = layer.icon;
+                return (
+                  <label key={layer.id} className="map-layer-toggle">
+                    <input
+                      type="checkbox"
+                      checked={enabledPersonalLayerSet.has(layer.id)}
+                      onChange={() => togglePersonalLayer(layer.id)}
+                    />
+                    <span className="layer-symbol" style={{ backgroundColor: layer.color }}>
+                      <LayerIcon size={13} strokeWidth={2.6} />
+                    </span>
+                    {layer.label}
+                  </label>
+                );
+              })}
             </div>
           )}
         </div>
@@ -747,20 +828,19 @@ function App() {
             const isPriority = priorityHighlightIdSet.has(highlight.id);
             const isCompleted = completedHighlightIdSet.has(highlight.id);
             return (
-              <Fragment key={highlight.id}>
-              <CircleMarker
+              <Marker
+                key={highlight.id}
                 ref={(marker) => {
                   markerRefs.current[highlight.id] = marker;
                 }}
-                center={[highlight.lat, highlight.lng]}
-                radius={isCurrent ? 12 : isSelected ? 10 : highlight.importance === "must-see" ? 8 : 7}
-                pathOptions={{
-                  color: isCompleted ? "#94a3b8" : isCurrent ? "#111827" : "#ffffff",
-                  weight: isCurrent ? 3 : 2,
-                  fillColor: categoryColors[highlight.category],
-                  fillOpacity: isCompleted ? 0.28 : 0.95,
-                  opacity: isCompleted ? 0.55 : 1,
-                }}
+                position={[highlight.lat, highlight.lng]}
+                icon={highlightMapIcon({
+                  highlight,
+                  isCurrent,
+                  isSelected,
+                  isPriority: enabledPersonalLayerSet.has("favorites") && isPriority,
+                  isCompleted,
+                })}
                 eventHandlers={{ click: () => viewHighlight(highlight) }}
               >
                 <Tooltip direction="top" offset={[0, -8]}>
@@ -858,30 +938,15 @@ function App() {
                     )}
                   </div>
                 </Popup>
-              </CircleMarker>
-              {enabledPersonalLayerSet.has("favorites") && isPriority && !isCurrent && !isCompleted && (
-                <Marker
-                  position={[highlight.lat, highlight.lng]}
-                  icon={priorityStarIcon}
-                  interactive={false}
-                  keyboard={false}
-                />
-              )}
-              </Fragment>
+              </Marker>
             );
           })}
 
           {visibleSleepBases.map((sleepBase) => (
-            <CircleMarker
+            <Marker
               key={sleepBase.id}
-              center={[sleepBase.lat, sleepBase.lng]}
-              radius={9}
-              pathOptions={{
-                color: "#ffffff",
-                weight: 2,
-                fillColor: "#be123c",
-                fillOpacity: 0.92,
-              }}
+              position={[sleepBase.lat, sleepBase.lng]}
+              icon={mapSymbolIcon({ Icon: Home, color: "#be123c", className: "sleepbase-marker" })}
             >
               <Tooltip direction="top" offset={[0, -8]}>
                 Slaapbasis: {sleepBase.name}
@@ -918,19 +983,13 @@ function App() {
                   </button>
                 </div>
               </Popup>
-            </CircleMarker>
+            </Marker>
           ))}
 
           {settings.customStart && (
-            <CircleMarker
-              center={[settings.customStart.lat, settings.customStart.lng]}
-              radius={12}
-              pathOptions={{
-                color: "#111827",
-                weight: 3,
-                fillColor: "#facc15",
-                fillOpacity: 1,
-              }}
+            <Marker
+              position={[settings.customStart.lat, settings.customStart.lng]}
+              icon={mapSymbolIcon({ Icon: MapPin, color: "#facc15", active: true, className: "custom-start-marker" })}
             >
               <Tooltip permanent direction="top" offset={[0, -10]} className="custom-start-tooltip">
                 Geprikt startpunt
@@ -947,7 +1006,7 @@ function App() {
                   </button>
                 </div>
               </Popup>
-            </CircleMarker>
+            </Marker>
           )}
 
           {routeLine.length > 1 && (
@@ -960,15 +1019,9 @@ function App() {
                 positions={[getNavigationPosition(highlight), getMapPosition(highlight)]}
                 pathOptions={{ color: "#0f766e", weight: 2, opacity: 0.8, dashArray: "4 6" }}
               />
-              <CircleMarker
-                center={getNavigationPosition(highlight)}
-                radius={8}
-                pathOptions={{
-                  color: "#0f766e",
-                  weight: 3,
-                  fillColor: "#ffffff",
-                  fillOpacity: 1,
-                }}
+              <Marker
+                position={getNavigationPosition(highlight)}
+                icon={mapSymbolIcon({ Icon: Navigation, color: "#0f766e", className: "navigation-target-marker" })}
               >
                 <Tooltip
                   permanent
@@ -992,7 +1045,7 @@ function App() {
                     </details>
                   </div>
                 </Popup>
-              </CircleMarker>
+              </Marker>
             </Fragment>
           ))}
 
