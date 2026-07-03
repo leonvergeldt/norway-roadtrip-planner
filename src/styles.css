@@ -1675,6 +1675,7 @@ input[type="range"] {
 }
 
 .leaflet-popup-content-wrapper {
+  position: relative;
   border-radius: 8px;
 }
 
@@ -1687,10 +1688,18 @@ input[type="range"] {
 
 .leaflet-popup-close-button {
   display: grid !important;
+  position: absolute !important;
+  top: 8px !important;
+  right: 8px !important;
+  z-index: 40 !important;
   width: 36px !important;
   height: 36px !important;
   place-items: center;
   color: #172033 !important;
+  background: rgba(255, 255, 255, 0.94) !important;
+  border: 1px solid #dbe4e0 !important;
+  border-radius: 999px !important;
+  box-shadow: 0 7px 16px rgba(23, 32, 51, 0.16) !important;
   font-size: 24px !important;
   font-weight: 800 !important;
   line-height: 1 !important;
@@ -1746,7 +1755,7 @@ input[type="range"] {
   .map-stage {
     position: absolute;
     inset: 0;
-    z-index: 1;
+    z-index: auto;
     min-height: 0;
   }
 
