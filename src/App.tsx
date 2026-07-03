@@ -30,10 +30,11 @@ import {
   Sparkles,
   Star,
   Waves,
+  X,
   Zap,
   type LucideIcon,
 } from "lucide-react";
-import { categoryColors, categoryLabels, highlights } from "./data/highlights";
+import { categoryColors, categoryImages, categoryLabels, highlights } from "./data/highlights";
 import { sleepBases } from "./data/sleepBases";
 import { generateRouteOptions } from "./lib/routeLogic";
 import { defaultSettings, loadSettings, saveSettings } from "./lib/storage";
@@ -141,6 +142,42 @@ function highlightMapIcon({
     muted: isCompleted,
     className: highlight.importance === "must-see" ? "must-see" : "",
   });
+}
+
+function HighlightImage({
+  highlight,
+  className,
+  showCredit = false,
+}: {
+  highlight: Highlight;
+  className?: string;
+  showCredit?: boolean;
+}) {
+  const fallbackSrc = categoryImages[highlight.category];
+  const preferredSrc = highlight.imageUrl ?? fallbackSrc;
+  const [src, setSrc] = useState(preferredSrc);
+
+  useEffect(() => {
+    setSrc(preferredSrc);
+  }, [preferredSrc, highlight.id]);
+
+  const isFallback = src === fallbackSrc && preferredSrc !== fallbackSrc;
+  const credit = isFallback ? "Offline sfeerbeeld" : highlight.imageCredit;
+
+  return (
+    <>
+      <img
+        className={className}
+        src={src}
+        alt={highlight.imageAlt ?? highlight.name}
+        loading="lazy"
+        onError={() => {
+          if (src !== fallbackSrc) setSrc(fallbackSrc);
+        }}
+      />
+      {showCredit && credit && <small className="image-credit">{credit}</small>}
+    </>
+  );
 }
 
 function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
@@ -283,6 +320,7 @@ function App() {
   const [selectedOptionId, setSelectedOptionId] = useState<string | undefined>(settings.savedTodayOptionId);
   const [selectedHighlightId, setSelectedHighlightId] = useState<string>(settings.currentHighlightId);
   const [popupHighlightId, setPopupHighlightId] = useState<string | undefined>();
+  const [mapDetailHighlightId, setMapDetailHighlightId] = useState<string | undefined>();
   const [isRouting, setIsRouting] = useState(false);
   const [isPickingStart, setIsPickingStart] = useState(false);
   const [isLocating, setIsLocating] = useState(false);
@@ -347,6 +385,16 @@ function App() {
     settings.customStart && selectedHighlightId.startsWith("custom-start-")
       ? currentHighlight
       : highlightById.get(selectedHighlightId);
+  const mapDetailHighlight = mapDetailHighlightId ? highlightById.get(mapDetailHighlightId) : undefined;
+  const mapDetailRegionHighlights = useMemo(
+    () =>
+      mapDetailHighlight
+        ? highlights
+            .filter((highlight) => highlight.region === mapDetailHighlight.region && highlight.id !== mapDetailHighlight.id)
+            .slice(0, 5)
+        : [],
+    [mapDetailHighlight],
+  );
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const matchesSearch = (highlight: Highlight) => {
     if (!normalizedSearch) return true;
@@ -571,6 +619,7 @@ function App() {
       savedTodayOptionId: undefined,
     }));
     setSelectedHighlightId(`custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`);
+    setMapDetailHighlightId(undefined);
     clearCurrentRouteOptions();
     setIsPickingStart(false);
   }
@@ -618,6 +667,7 @@ function App() {
       savedTodayOptionId: undefined,
     }));
     setSelectedHighlightId(settings.currentHighlightId);
+    setMapDetailHighlightId(settings.currentHighlightId);
     clearCurrentRouteOptions();
     setIsPickingStart(false);
   }
@@ -654,11 +704,13 @@ function App() {
       enabledPersonalLayers: current.enabledPersonalLayers,
       mapFocusMode: current.mapFocusMode,
     }));
+    setMapDetailHighlightId(undefined);
     clearCurrentRouteOptions();
   }
 
   function viewHighlight(highlight: Highlight) {
     setSelectedHighlightId(highlight.id);
+    setMapDetailHighlightId(highlight.id);
     setSettings((current) => ({
       ...current,
       recentlyViewedHighlightIds: [
@@ -815,6 +867,106 @@ function App() {
             </div>
           )}
         </div>
+        {mapDetailHighlight && (
+          <aside
+            className="map-detail-card"
+            aria-label={`Kaartinformatie over ${mapDetailHighlight.name}`}
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <button
+              type="button"
+              className="map-detail-close"
+              onClick={() => setMapDetailHighlightId(undefined)}
+              aria-label="Sluit kaartinformatie"
+            >
+              <X size={16} />
+            </button>
+            <div className="map-detail-heading">
+              <span>{categoryLabels[mapDetailHighlight.category]} - {mapDetailHighlight.region}</span>
+              <strong>{mapDetailHighlight.name}</strong>
+            </div>
+            <HighlightImage highlight={mapDetailHighlight} className="map-detail-image" showCredit />
+            <p className="map-detail-intro">{mapDetailHighlight.description}</p>
+            <div className="map-detail-actions">
+              <button type="button" onClick={() => useAsCurrent(mapDetailHighlight)}>
+                <MapPinned size={14} />
+                Start
+              </button>
+              <button
+                type="button"
+                className={priorityHighlightIdSet.has(mapDetailHighlight.id) ? "active priority" : "priority"}
+                onClick={() => togglePriorityHighlight(mapDetailHighlight.id)}
+              >
+                <Star size={14} />
+                {priorityHighlightIdSet.has(mapDetailHighlight.id) ? "Zeker" : "Bewaar"}
+              </button>
+              <button
+                type="button"
+                className={completedHighlightIdSet.has(mapDetailHighlight.id) ? "active done" : "done"}
+                onClick={() => toggleCompletedHighlight(mapDetailHighlight.id)}
+              >
+                <CheckCircle2 size={14} />
+                Gedaan
+              </button>
+            </div>
+            <dl className="map-detail-facts">
+              <div>
+                <dt>Bezoek</dt>
+                <dd>{formatHours(mapDetailHighlight.visitTimeHours)}</dd>
+              </div>
+              <div>
+                <dt>Waarde</dt>
+                <dd>{mapDetailHighlight.importance}</dd>
+              </div>
+              {mapDetailHighlight.navigationLabel && (
+                <div>
+                  <dt>Navigatie</dt>
+                  <dd>{navigationTargetText(mapDetailHighlight)}</dd>
+                </div>
+              )}
+            </dl>
+            <div className="map-detail-copy">
+              {(mapDetailHighlight.detail ?? []).slice(0, 2).map((paragraph) => (
+                <p key={paragraph}>{paragraph}</p>
+              ))}
+            </div>
+            {mapDetailHighlight.contentTips && (
+              <div className="map-detail-tips">
+                <div>
+                  <strong>Past bij</strong>
+                  <div className="content-fit-tags">
+                    {mapDetailHighlight.contentTips.fits.slice(0, 4).map((label) => (
+                      <span key={label}>{label}</span>
+                    ))}
+                  </div>
+                </div>
+                <p><strong>Beste moment:</strong> {mapDetailHighlight.contentTips.bestMoment}</p>
+                <p><strong>Overslaan als:</strong> {mapDetailHighlight.contentTips.skipWhen}</p>
+                <p><strong>Praktisch:</strong> {mapDetailHighlight.contentTips.logistics}</p>
+              </div>
+            )}
+            {!!mapDetailRegionHighlights.length && (
+              <div className="map-region-strip">
+                <strong>{mapDetailHighlight.region} op de kaart</strong>
+                <p>{mapDetailRegionHighlights.length} andere logische punten in deze regio.</p>
+                <div>
+                  {mapDetailRegionHighlights.slice(0, 4).map((highlight) => (
+                    <button
+                      key={highlight.id}
+                      type="button"
+                      onClick={() => {
+                        viewHighlight(highlight);
+                        setPopupHighlightId(highlight.id);
+                      }}
+                    >
+                      {highlight.name}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+          </aside>
+        )}
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
@@ -885,12 +1037,7 @@ function App() {
                       </button>
                     </div>
                     {isPriority && !isCompleted && <span className="priority-label">Zeker doen</span>}
-                    {highlight.imageUrl && (
-                      <>
-                        <img className="popup-image" src={highlight.imageUrl} alt={highlight.imageAlt ?? highlight.name} loading="lazy" />
-                        {highlight.imageCredit && <small className="image-credit">{highlight.imageCredit}</small>}
-                      </>
-                    )}
+                    <HighlightImage highlight={highlight} className="popup-image" showCredit />
                     <p>{highlight.description}</p>
                     <dl>
                       <div>
@@ -902,40 +1049,18 @@ function App() {
                         <dd>{highlight.importance}</dd>
                       </div>
                     </dl>
-                    {!!highlight.detail?.length && (
-                      <details className="popup-details">
-                        <summary>Waarom interessant</summary>
-                        {highlight.detail.map((paragraph) => (
-                          <p key={paragraph}>{paragraph}</p>
-                        ))}
-                      </details>
-                    )}
                     {highlight.contentTips && (
-                      <details className="popup-details">
-                        <summary>Wanneer wel/niet</summary>
-                        <div className="content-fit-tags">
-                          {highlight.contentTips.fits.map((label) => (
-                            <span key={label}>{label}</span>
-                          ))}
-                        </div>
-                        <p><strong>Beste moment:</strong> {highlight.contentTips.bestMoment}</p>
-                        <p><strong>Overslaan als:</strong> {highlight.contentTips.skipWhen}</p>
-                      </details>
+                      <p className="note">
+                        <strong>Beste moment:</strong> {highlight.contentTips.bestMoment}
+                      </p>
                     )}
-                    {(highlight.note || highlight.navigationLabel || highlight.contentTips?.logistics) && (
-                      <details className="popup-details">
-                        <summary>Praktisch</summary>
-                        {highlight.note && <p className="note">{highlight.note}</p>}
-                        {highlight.contentTips?.logistics ? (
-                          <p className="note">{highlight.contentTips.logistics}</p>
-                        ) : highlight.navigationLabel && (
-                          <p className="note">
-                            Navigatie: {highlight.navigationLabel}
-                            {highlight.navigationNote ? ` - ${highlight.navigationNote}` : ""}
-                          </p>
-                        )}
-                      </details>
-                    )}
+                    <button
+                      type="button"
+                      className="text-button"
+                      onClick={() => setMapDetailHighlightId(highlight.id)}
+                    >
+                      Toon kaartinfo
+                    </button>
                   </div>
                 </Popup>
               </Marker>
@@ -1150,28 +1275,6 @@ function App() {
           <p className="microcopy">Gebruik Heen/noord tot Geiranger of Atlantic Road; zet Terug aan zodra Oslo, Telemark of Kristiansand weer logisch wordt.</p>
         </section>
 
-        <section className="control-section region-mockup">
-          <div className="section-title">
-            <MapPinned size={17} />
-            <h2>Regiokaart mock-up</h2>
-          </div>
-          <div className="region-card-preview">
-            <div>
-              <span>Voorbeeld</span>
-              <strong>Hardanger</strong>
-              <p>Watervallen, fruitdorpen, fjordarmen en korte hikes. Sterk voor rustige scenic dagen of een actieve dag rond Odda.</p>
-            </div>
-            <div className="region-action-grid">
-              <button type="button">Korte stops</button>
-              <button type="button">Actief</button>
-              <button type="button">Regenproof</button>
-              <button type="button">Verder reizen</button>
-            </div>
-            <p className="microcopy"><strong>Logisch hierna:</strong> Bergen, Sognefjord of Telemark terugroute. <strong>Let op:</strong> Trolltunga is een aparte hoofddag.</p>
-          </div>
-        </section>
-
-
         <section className="control-section ev-box">
           <div className="section-title">
             <Zap size={17} />
@@ -1283,19 +1386,12 @@ function App() {
                   {option.offlineLabels.length > 3 && <span className="route-label neutral">+{option.offlineLabels.length - 3}</span>}
                 </div>
               )}
-              {option.stops[0]?.highlight.imageUrl && (
+              {option.stops[0]?.highlight && (
                 <div className="route-visual">
-                  <img
-                    src={option.stops[0].highlight.imageUrl}
-                    alt={option.stops[0].highlight.imageAlt ?? option.stops[0].highlight.name}
-                    loading="lazy"
-                  />
+                  <HighlightImage highlight={option.stops[0].highlight} />
                   <div>
                     <strong>{option.stops[0].highlight.name}</strong>
                     <p>{option.stops[0].highlight.detail?.[0] ?? option.stops[0].highlight.description}</p>
-                    {option.stops[0].highlight.imageCredit && (
-                      <small className="image-credit">{option.stops[0].highlight.imageCredit}</small>
-                    )}
                   </div>
                 </div>
               )}
@@ -1400,9 +1496,7 @@ function App() {
                 <div className="stop-context-list">
                   {option.stops.map((stop) => (
                     <article key={`context-${stop.highlight.id}`} className="stop-context">
-                      {stop.highlight.imageUrl && (
-                        <img src={stop.highlight.imageUrl} alt={stop.highlight.imageAlt ?? stop.highlight.name} loading="lazy" />
-                      )}
+                      <HighlightImage highlight={stop.highlight} />
                       <div>
                         <strong>{stop.highlight.name}</strong>
                         {(stop.highlight.detail ?? [stop.highlight.description]).slice(0, 2).map((paragraph) => (

@@ -24,7 +24,7 @@ const imageAsset = (fileName: string) => `${import.meta.env.BASE_URL}images/${fi
 const commonsImage = (fileName: string) =>
   `https://commons.wikimedia.org/wiki/Special:FilePath/${encodeURIComponent(fileName)}?width=1000`;
 
-const categoryImages: Record<Category, string> = {
+export const categoryImages: Record<Category, string> = {
   city: imageAsset("city.svg"),
   fjord: imageAsset("fjord.svg"),
   hike: imageAsset("hike.svg"),
