@@ -239,7 +239,7 @@ button {
   position: absolute;
   bottom: calc(14px + env(safe-area-inset-bottom, 0px));
   left: 14px;
-  z-index: 540;
+  z-index: 680;
   display: grid;
   gap: 9px;
   width: min(430px, calc(100% - 28px));
@@ -256,13 +256,15 @@ button {
 }
 
 .map-detail-close {
-  position: absolute;
-  top: 8px;
-  right: 8px;
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: grid;
   width: 32px;
   height: 32px;
+  margin-bottom: -38px;
   place-items: center;
+  justify-self: end;
   color: #172033;
   background: rgba(255, 255, 255, 0.86);
   border: 1px solid #dbe4e0;
@@ -1691,7 +1693,7 @@ input[type="range"] {
   position: absolute !important;
   top: 8px !important;
   right: 8px !important;
-  z-index: 40 !important;
+  z-index: 80 !important;
   width: 36px !important;
   height: 36px !important;
   place-items: center;
@@ -1773,10 +1775,10 @@ input[type="range"] {
 
   .map-detail-card {
     right: 10px;
-    bottom: calc(62px + env(safe-area-inset-bottom, 0px));
+    bottom: calc(76px + env(safe-area-inset-bottom, 0px));
     left: 10px;
     width: auto;
-    max-height: min(44dvh, 390px);
+    max-height: min(40dvh, 370px);
     padding: 10px;
     border-radius: 10px;
   }
@@ -1976,7 +1978,7 @@ input[type="range"] {
 
   .leaflet-popup-content {
     width: min(236px, calc(100vw - 72px)) !important;
-    max-height: min(230px, 34dvh);
+    max-height: min(220px, 32dvh);
     margin: 10px 12px 12px;
   }
 
