@@ -1017,6 +1017,15 @@ function App() {
                       </div>
                       {isCompleted && <span className="done-label">Gedaan</span>}
                     </div>
+                    <button
+                      type="button"
+                      className="popup-more-info-button"
+                      onClick={() => openHighlightDetail(highlight)}
+                      title="Open uitgebreide informatie"
+                    >
+                      <Binoculars size={13} />
+                      Meer info
+                    </button>
                     <div className="popup-actions compact">
                       <button
                         type="button"
@@ -1064,13 +1073,6 @@ function App() {
                         <strong>Beste moment:</strong> {highlight.contentTips.bestMoment}
                       </p>
                     )}
-                    <button
-                      type="button"
-                      className="text-button"
-                      onClick={() => openHighlightDetail(highlight)}
-                    >
-                      Meer info
-                    </button>
                   </div>
                 </Popup>
               </Marker>
