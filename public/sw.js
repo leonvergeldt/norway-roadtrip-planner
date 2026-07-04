@@ -1,4 +1,4 @@
-﻿const APP_CACHE = "norway-planner-app-v6";
+const APP_CACHE = "norway-planner-app-v7";
 const RUNTIME_CACHE = "norway-planner-runtime-v1";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
@@ -64,7 +64,18 @@ const APP_SHELL = [
 
 self.addEventListener("install", (event) => {
   event.waitUntil(
-    caches.open(APP_CACHE).then((cache) => cache.addAll(APP_SHELL)).then(() => self.skipWaiting()),
+    caches
+      .open(APP_CACHE)
+      .then((cache) =>
+        Promise.allSettled(
+          APP_SHELL.map((url) =>
+            cache.add(url).catch(() => {
+              // Keep installation resilient when a non-critical image is unavailable.
+            }),
+          ),
+        ),
+      )
+      .then(() => self.skipWaiting()),
   );
 });
 
@@ -154,7 +165,10 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   } catch {
     const cached = await cache.match(request);
     if (cached) return cached;
-    if (fallbackUrl) return cache.match(fallbackUrl);
+    if (fallbackUrl) {
+      const fallback = await cache.match(fallbackUrl);
+      if (fallback) return fallback;
+    }
     throw new Error("Offline and no cached response available");
   }
 }

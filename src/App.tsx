@@ -74,6 +74,45 @@ const personalMapLayers: Array<{ id: PersonalMapLayer; label: string; color: str
 const badWeatherVisibleCategories = new Set<Category>(["city", "stave_church", "scenic_route", "viewpoint"]);
 const highlightById = new Map(highlights.map((highlight) => [highlight.id, highlight]));
 
+function compactSearchText(parts: Array<string | undefined>) {
+  return parts.filter(Boolean).join(" ").toLowerCase();
+}
+
+const highlightSearchIndex = new Map(
+  highlights.map((highlight) => [
+    highlight.id,
+    compactSearchText([
+      highlight.name,
+      highlight.region,
+      categoryLabels[highlight.category],
+      highlight.description,
+      highlight.note,
+      ...(highlight.detail ?? []),
+      highlight.contentTips?.bestMoment,
+      highlight.contentTips?.skipWhen,
+      highlight.contentTips?.logistics,
+      ...(highlight.contentTips?.fits ?? []),
+      ...highlight.styles,
+      highlight.importance,
+    ]),
+  ]),
+);
+
+const sleepBaseSearchIndex = new Map(
+  sleepBases.map((sleepBase) => [
+    sleepBase.id,
+    compactSearchText([
+      sleepBase.name,
+      sleepBase.region,
+      sleepBase.description,
+      sleepBase.tripMoment,
+      sleepBase.note,
+      ...sleepBase.bestFor,
+      ...sleepBase.dayTrips,
+    ]),
+  ]),
+);
+
 const markerIconByCategory: Record<Category, LucideIcon> = {
   city: Building2,
   fjord: Waves,
@@ -546,41 +585,12 @@ function App() {
   const normalizedSearch = searchQuery.trim().toLowerCase();
   const matchesSearch = (highlight: Highlight) => {
     if (!normalizedSearch) return true;
-    const haystack = [
-      highlight.name,
-      highlight.region,
-      categoryLabels[highlight.category],
-      highlight.description,
-      highlight.note,
-      ...(highlight.detail ?? []),
-      highlight.contentTips?.bestMoment,
-      highlight.contentTips?.skipWhen,
-      highlight.contentTips?.logistics,
-      ...(highlight.contentTips?.fits ?? []),
-      ...highlight.styles,
-      highlight.importance,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(normalizedSearch);
+    return highlightSearchIndex.get(highlight.id)?.includes(normalizedSearch) ?? false;
   };
 
   const matchesSleepBase = (sleepBase: SleepBase) => {
     if (!normalizedSearch) return true;
-    const haystack = [
-      sleepBase.name,
-      sleepBase.region,
-      sleepBase.description,
-      sleepBase.tripMoment,
-      sleepBase.note,
-      ...sleepBase.bestFor,
-      ...sleepBase.dayTrips,
-    ]
-      .filter(Boolean)
-      .join(" ")
-      .toLowerCase();
-    return haystack.includes(normalizedSearch);
+    return sleepBaseSearchIndex.get(sleepBase.id)?.includes(normalizedSearch) ?? false;
   };
 
   const filteredHighlights = useMemo(() => {
