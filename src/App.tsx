@@ -1262,13 +1262,24 @@ function App() {
                       <span>Slaapbasis - {sleepBase.region}</span>
                     </div>
                   </div>
+                  <div className="popup-actions compact sleepbase-actions">
+                    <button
+                      type="button"
+                      className="popup-action-button sleepbase-start"
+                      onClick={() => setCustomStart(sleepBase.lat, sleepBase.lng, sleepBase.name)}
+                      title="Gebruik deze slaapbasis als startpunt"
+                    >
+                      <MapPinned size={14} />
+                      <span>Start</span>
+                    </button>
+                  </div>
                   <p>{sleepBase.description}</p>
                   <div className="sleepbase-tags">
                     {sleepBase.bestFor.map((tag) => (
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
-                  <details className="popup-details" open>
+                  <details className="popup-details">
                     <summary>Waarom hier slapen</summary>
                     <p>{sleepBase.tripMoment}</p>
                     <p className="note">{sleepBase.note}</p>
@@ -1277,13 +1288,6 @@ function App() {
                     <summary>Logische dagtrips</summary>
                     <p>{sleepBase.dayTrips.join(", ")}</p>
                   </details>
-                  <button
-                    type="button"
-                    className="text-button"
-                    onClick={() => setCustomStart(sleepBase.lat, sleepBase.lng, sleepBase.name)}
-                  >
-                    Start vanaf deze slaapbasis
-                  </button>
                 </div>
               </Popup>
             </Marker>

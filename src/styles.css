@@ -2130,6 +2130,18 @@ input[type="range"] {
   gap: 5px;
 }
 
+.sleepbase-actions {
+  grid-template-columns: minmax(0, auto);
+  justify-content: start;
+}
+
+.popup-action-button.sleepbase-start {
+  min-width: 0;
+  padding: 0 10px;
+  color: #7f1d1d;
+  background: #ffe4e6;
+}
+
 .sleepbase-tags span {
   display: inline-flex;
   align-items: center;
