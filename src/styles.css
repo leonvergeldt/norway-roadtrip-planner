@@ -87,6 +87,14 @@ button {
   display: grid;
   gap: 7px;
   width: min(430px, calc(100% - 28px));
+  pointer-events: none;
+}
+
+.map-search-widget,
+.map-search-results,
+.map-layer-popover,
+.map-status-row,
+.map-cluster-message {
   pointer-events: auto;
 }
 
@@ -169,7 +177,10 @@ button {
 .map-layer-popover {
   display: grid;
   gap: 6px;
+  width: max-content;
   min-width: 176px;
+  max-width: min(260px, 100%);
+  justify-self: start;
   padding: 8px;
   background: rgba(255, 255, 255, 0.97);
   border: 1px solid #dbe4e0;
@@ -1612,6 +1623,7 @@ input[type="range"] {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 6px;
+  pointer-events: none;
 }
 
 .map-action-button {
@@ -1630,6 +1642,7 @@ input[type="range"] {
   font-size: 0.76rem;
   font-weight: 900;
   backdrop-filter: blur(8px);
+  pointer-events: auto;
 }
 
 .map-action-button span {
