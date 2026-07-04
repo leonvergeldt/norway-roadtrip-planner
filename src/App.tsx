@@ -708,9 +708,8 @@ function App() {
     clearCurrentRouteOptions();
   }
 
-  function viewHighlight(highlight: Highlight) {
+  function rememberHighlight(highlight: Highlight) {
     setSelectedHighlightId(highlight.id);
-    setMapDetailHighlightId(highlight.id);
     setSettings((current) => ({
       ...current,
       recentlyViewedHighlightIds: [
@@ -720,8 +719,20 @@ function App() {
     }));
   }
 
+  function closeOpenHighlightPopups() {
+    Object.values(markerRefs.current).forEach((marker) => marker?.closePopup());
+    setPopupHighlightId(undefined);
+  }
+
+  function openHighlightDetail(highlight: Highlight) {
+    rememberHighlight(highlight);
+    closeOpenHighlightPopups();
+    setMapDetailHighlightId(highlight.id);
+  }
+
   function openHighlightPopup(highlight: Highlight) {
-    viewHighlight(highlight);
+    rememberHighlight(highlight);
+    setMapDetailHighlightId(undefined);
     setPopupHighlightId(highlight.id);
   }
 
@@ -804,9 +815,8 @@ function App() {
                   key={highlight.id}
                   type="button"
                   onClick={() => {
-                    viewHighlight(highlight);
                     setSearchQuery("");
-                    setPopupHighlightId(highlight.id);
+                    openHighlightPopup(highlight);
                   }}
                 >
                   <span>{highlight.name}</span>
@@ -954,10 +964,7 @@ function App() {
                     <button
                       key={highlight.id}
                       type="button"
-                      onClick={() => {
-                        viewHighlight(highlight);
-                        setPopupHighlightId(highlight.id);
-                      }}
+                      onClick={() => openHighlightDetail(highlight)}
                     >
                       {highlight.name}
                     </button>
@@ -993,7 +1000,10 @@ function App() {
                   isPriority: enabledPersonalLayerSet.has("favorites") && isPriority,
                   isCompleted,
                 })}
-                eventHandlers={{ click: () => viewHighlight(highlight) }}
+                eventHandlers={{ click: () => {
+                  rememberHighlight(highlight);
+                  setMapDetailHighlightId(undefined);
+                } }}
               >
                 <Tooltip direction="top" offset={[0, -8]}>
                   {highlight.name}{isCompleted ? " - gedaan" : ""}
@@ -1057,9 +1067,9 @@ function App() {
                     <button
                       type="button"
                       className="text-button"
-                      onClick={() => setMapDetailHighlightId(highlight.id)}
+                      onClick={() => openHighlightDetail(highlight)}
                     >
-                      Toon kaartinfo
+                      Meer info
                     </button>
                   </div>
                 </Popup>
