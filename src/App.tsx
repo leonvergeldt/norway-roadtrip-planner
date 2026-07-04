@@ -1,5 +1,4 @@
 import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
-import { renderToStaticMarkup } from "react-dom/server";
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import { divIcon } from "leaflet";
 import type { Marker as LeafletMarker, LatLngExpression } from "leaflet";
@@ -9,16 +8,13 @@ import {
   CheckCircle2,
   ChevronDown,
   ChevronUp,
-  Church,
   Compass,
   Download,
   Footprints,
   Home,
   LocateFixed,
   Layers,
-  MapPin,
   MapPinned,
-  Navigation,
   RotateCcw,
   Route,
   Search,
@@ -113,18 +109,52 @@ const sleepBaseSearchIndex = new Map(
   ]),
 );
 
-const markerIconByCategory: Record<Category, LucideIcon> = {
-  city: Building2,
-  fjord: Waves,
-  hike: Footprints,
-  stave_church: Church,
-  kayak: Waves,
-  viewpoint: Binoculars,
-  scenic_route: Route,
+type MarkerIconName =
+  | "binoculars"
+  | "building"
+  | "check"
+  | "church"
+  | "footprints"
+  | "home"
+  | "mapPin"
+  | "navigation"
+  | "route"
+  | "star"
+  | "waves";
+
+const markerIconByCategory: Record<Category, MarkerIconName> = {
+  city: "building",
+  fjord: "waves",
+  hike: "footprints",
+  stave_church: "church",
+  kayak: "waves",
+  viewpoint: "binoculars",
+  scenic_route: "route",
 };
 
-function renderIconMarkup(Icon: LucideIcon, size = 16) {
-  return renderToStaticMarkup(<Icon size={size} strokeWidth={2.55} aria-hidden="true" focusable="false" />);
+const markerIconPaths: Record<MarkerIconName, string> = {
+  binoculars:
+    '<path d="M7 7h3l2 9h-4l-1-4h-2l-1 4h-3l2-7a3 3 0 0 1 3-2Z"/><path d="M17 7h-3l-2 9h4l1-4h2l1 4h3l-2-7a3 3 0 0 0-3-2Z"/><path d="M10 7h4"/><path d="M8 16a2 2 0 1 1-4 0"/><path d="M20 16a2 2 0 1 1-4 0"/>',
+  building:
+    '<path d="M4 21h16"/><path d="M6 21v-15a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M9 12h1"/><path d="M14 12h1"/><path d="M10 21v-4h4v4"/>',
+  check: '<path d="M20 6 9 17l-5-5"/>',
+  church:
+    '<path d="M12 3v18"/><path d="M9 6h6"/><path d="m5 10 7-5 7 5"/><path d="M6 21v-9h12v9"/><path d="M10 21v-5a2 2 0 0 1 4 0v5"/>',
+  footprints:
+    '<path d="M8 7a2 2 0 1 0-3 2c1 1 2 2 2 4"/><path d="M6 17a2 2 0 1 0 4 0c0-2-2-3-3-4"/><path d="M16 5a2 2 0 1 0-3 2c1 1 2 2 2 4"/><path d="M14 15a2 2 0 1 0 4 0c0-2-2-3-3-4"/>',
+  home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v11h14v-11"/><path d="M9 21v-6h6v6"/>',
+  mapPin: '<path d="M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/>',
+  navigation: '<path d="m12 3 7 18-7-4-7 4 7-18Z"/>',
+  route:
+    '<circle cx="6" cy="6" r="2"/><circle cx="18" cy="18" r="2"/><path d="M8 6h5a3 3 0 0 1 0 6h-2a3 3 0 0 0 0 6h5"/>',
+  star:
+    '<path d="m12 3 2.7 5.5 6.1.9-4.4 4.3 1 6.1-5.4-2.9-5.4 2.9 1-6.1-4.4-4.3 6.1-.9L12 3Z"/>',
+  waves:
+    '<path d="M3 8c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M3 14c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/><path d="M3 20c2 0 2-2 4-2s2 2 4 2 2-2 4-2 2 2 4 2 2-2 4-2"/>',
+};
+
+function renderMarkerIconMarkup(iconName: MarkerIconName) {
+  return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${markerIconPaths[iconName]}</svg>`;
 }
 
 function mapSymbolIcon({
@@ -135,8 +165,8 @@ function mapSymbolIcon({
   muted = false,
   className = "",
 }: {
-  Icon: LucideIcon;
-  BadgeIcon?: LucideIcon;
+  Icon: MarkerIconName;
+  BadgeIcon?: MarkerIconName;
   color: string;
   active?: boolean;
   muted?: boolean;
@@ -145,13 +175,11 @@ function mapSymbolIcon({
   const classes = ["map-symbol-marker", active ? "active" : "", muted ? "muted" : "", className]
     .filter(Boolean)
     .join(" ");
-  const badge = BadgeIcon
-    ? `<span class="map-symbol-marker__badge">${renderIconMarkup(BadgeIcon, 10)}</span>`
-    : "";
+  const badge = BadgeIcon ? `<span class="map-symbol-marker__badge">${renderMarkerIconMarkup(BadgeIcon)}</span>` : "";
 
   return divIcon({
     className: classes,
-    html: `<div class="map-symbol-marker__inner" style="--marker-color:${color}">${renderIconMarkup(Icon)}${badge}</div>`,
+    html: `<div class="map-symbol-marker__inner" style="--marker-color:${color}">${renderMarkerIconMarkup(Icon)}${badge}</div>`,
     iconSize: [38, 38],
     iconAnchor: [19, 19],
     popupAnchor: [0, -18],
@@ -196,7 +224,7 @@ function highlightMapIcon({
 }) {
   return mapSymbolIcon({
     Icon: markerIconByCategory[highlight.category],
-    BadgeIcon: isCompleted ? CheckCircle2 : isPriority ? Star : undefined,
+    BadgeIcon: isCompleted ? "check" : isPriority ? "star" : undefined,
     color: isCompleted ? "#94a3b8" : categoryColors[highlight.category],
     active: isCurrent || isSelected,
     muted: isCompleted,
@@ -425,6 +453,16 @@ function buildOfflineTileUrls() {
   }
 
   return urls;
+}
+
+function buildOfflinePhotoUrls() {
+  return Array.from(
+    new Set(
+      highlights
+        .map((highlight) => highlight.imageUrl)
+        .filter((url): url is string => typeof url === "string" && url.startsWith(import.meta.env.BASE_URL)),
+    ),
+  );
 }
 
 function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): Highlight {
@@ -721,12 +759,14 @@ function App() {
     }
 
     const urls = buildOfflineTileUrls();
+    const photoUrls = buildOfflinePhotoUrls();
     setIsCachingMap(true);
     worker.postMessage({ type: "CACHE_TILES", urls });
+    worker.postMessage({ type: "CACHE_URLS", urls: photoUrls });
     window.setTimeout(() => {
       setIsCachingMap(false);
       setOfflineMapMessage(
-        `${urls.length} kaarttegels voorbereid voor overzichtszoom. Detailtegels werken offline nadat je ze online hebt bekeken.`,
+        `${urls.length} kaarttegels en ${photoUrls.length} foto's voorbereid. Detailtegels werken offline nadat je ze online hebt bekeken.`,
       );
     }, 1800);
   }
@@ -1212,7 +1252,7 @@ function App() {
             <Marker
               key={sleepBase.id}
               position={[sleepBase.lat, sleepBase.lng]}
-              icon={mapSymbolIcon({ Icon: Home, color: "#be123c", className: "sleepbase-marker" })}
+              icon={mapSymbolIcon({ Icon: "home", color: "#be123c", className: "sleepbase-marker" })}
             >
               <Tooltip direction="top" offset={[0, -8]}>
                 Slaapbasis: {sleepBase.name}
@@ -1259,7 +1299,7 @@ function App() {
           {settings.customStart && (
             <Marker
               position={[settings.customStart.lat, settings.customStart.lng]}
-              icon={mapSymbolIcon({ Icon: MapPin, color: "#facc15", active: true, className: "custom-start-marker" })}
+              icon={mapSymbolIcon({ Icon: "mapPin", color: "#facc15", active: true, className: "custom-start-marker" })}
             >
               <Tooltip permanent direction="top" offset={[0, -10]} className="custom-start-tooltip">
                 Geprikt startpunt
@@ -1291,7 +1331,7 @@ function App() {
               />
               <Marker
                 position={getNavigationPosition(highlight)}
-                icon={mapSymbolIcon({ Icon: Navigation, color: "#0f766e", className: "navigation-target-marker" })}
+                icon={mapSymbolIcon({ Icon: "navigation", color: "#0f766e", className: "navigation-target-marker" })}
               >
                 <Tooltip
                   permanent

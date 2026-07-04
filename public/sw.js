@@ -1,5 +1,5 @@
-const APP_CACHE = "norway-planner-app-v7";
-const RUNTIME_CACHE = "norway-planner-runtime-v1";
+const APP_CACHE = "norway-planner-app-v8";
+const RUNTIME_CACHE = "norway-planner-runtime-v2";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
 const IMAGE_CACHE = "norway-planner-images-v1";
@@ -18,48 +18,6 @@ const APP_SHELL = [
   `${BASE_PATH}images/scenic-road.svg`,
   `${BASE_PATH}images/stave-church.svg`,
   `${BASE_PATH}images/waterfall.svg`,
-  `${BASE_PATH}images/photos/alesund.jpg`,
-  `${BASE_PATH}images/photos/arendal.jpg`,
-  `${BASE_PATH}images/photos/atlantic-road.jpg`,
-  `${BASE_PATH}images/photos/aurland.jpg`,
-  `${BASE_PATH}images/photos/aurlandsfjellet.jpg`,
-  `${BASE_PATH}images/photos/bergen-bryggen.jpg`,
-  `${BASE_PATH}images/photos/borgund-stave-church.jpg`,
-  `${BASE_PATH}images/photos/dalsnibba.jpg`,
-  `${BASE_PATH}images/photos/dovrefjell.jpg`,
-  `${BASE_PATH}images/photos/eidsborg-stave-church.jpg`,
-  `${BASE_PATH}images/photos/flam.jpg`,
-  `${BASE_PATH}images/photos/flekkefjord.jpg`,
-  `${BASE_PATH}images/photos/gamle-stavanger.jpg`,
-  `${BASE_PATH}images/photos/gaularfjellet-vik.jpg`,
-  `${BASE_PATH}images/photos/geirangerfjord.jpg`,
-  `${BASE_PATH}images/photos/ha-old-vicarage.jpg`,
-  `${BASE_PATH}images/photos/hardangerfjord.jpg`,
-  `${BASE_PATH}images/photos/jostedalsbreen.jpg`,
-  `${BASE_PATH}images/photos/jotunheimen.jpg`,
-  `${BASE_PATH}images/photos/kjerag.jpg`,
-  `${BASE_PATH}images/photos/kristiansand.jpg`,
-  `${BASE_PATH}images/photos/langfoss.jpg`,
-  `${BASE_PATH}images/photos/latefossen.jpg`,
-  `${BASE_PATH}images/photos/lindesnes.jpg`,
-  `${BASE_PATH}images/photos/lom.jpg`,
-  `${BASE_PATH}images/photos/maurangsfjorden-sundal.jpg`,
-  `${BASE_PATH}images/photos/molde.jpg`,
-  `${BASE_PATH}images/photos/naeroyfjord.jpg`,
-  `${BASE_PATH}images/photos/odda.jpg`,
-  `${BASE_PATH}images/photos/olden.jpg`,
-  `${BASE_PATH}images/photos/oslo.jpg`,
-  `${BASE_PATH}images/photos/otternes.jpg`,
-  `${BASE_PATH}images/photos/preikestolen.jpg`,
-  `${BASE_PATH}images/photos/runde.jpg`,
-  `${BASE_PATH}images/photos/stavanger.jpg`,
-  `${BASE_PATH}images/photos/stegastein.jpg`,
-  `${BASE_PATH}images/photos/trollstigen.jpg`,
-  `${BASE_PATH}images/photos/trolltunga-trailhead.jpg`,
-  `${BASE_PATH}images/photos/undredal.jpg`,
-  `${BASE_PATH}images/photos/urke.jpg`,
-  `${BASE_PATH}images/photos/vedahaugane.jpg`,
-  `${BASE_PATH}images/photos/voss.jpg`,
 ];
 
 self.addEventListener("install", (event) => {
@@ -96,7 +54,7 @@ self.addEventListener("activate", (event) => {
 
 self.addEventListener("message", (event) => {
   if (!Array.isArray(event.data?.urls)) return;
-  const cacheName = event.data.type === "CACHE_TILES" ? TILE_CACHE : APP_CACHE;
+  const cacheName = event.data.type === "CACHE_TILES" ? TILE_CACHE : RUNTIME_CACHE;
   if (event.data.type !== "CACHE_URLS" && event.data.type !== "CACHE_TILES") return;
 
   event.waitUntil(
