@@ -27,6 +27,7 @@ export function HighlightImage({ highlight, className, showCredit = false }: Hig
         src={src}
         alt={highlight.imageAlt ?? highlight.name}
         loading="lazy"
+        decoding="async"
         onError={() => {
           if (src !== fallbackSrc) setSrc(fallbackSrc);
         }}

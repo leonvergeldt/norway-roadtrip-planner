@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import { divIcon } from "leaflet";
 import type { Marker as LeafletMarker, LatLngExpression } from "leaflet";
@@ -157,6 +157,9 @@ function renderMarkerIconMarkup(iconName: MarkerIconName) {
   return `<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.55" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" focusable="false">${markerIconPaths[iconName]}</svg>`;
 }
 
+const mapSymbolIconCache = new Map<string, ReturnType<typeof divIcon>>();
+const clusterIconCache = new Map<string, ReturnType<typeof divIcon>>();
+
 function mapSymbolIcon({
   Icon,
   BadgeIcon,
@@ -172,12 +175,16 @@ function mapSymbolIcon({
   muted?: boolean;
   className?: string;
 }) {
+  const cacheKey = [Icon, BadgeIcon ?? "", color, active ? "1" : "0", muted ? "1" : "0", className].join("|");
+  const cached = mapSymbolIconCache.get(cacheKey);
+  if (cached) return cached;
+
   const classes = ["map-symbol-marker", active ? "active" : "", muted ? "muted" : "", className]
     .filter(Boolean)
     .join(" ");
   const badge = BadgeIcon ? `<span class="map-symbol-marker__badge">${renderMarkerIconMarkup(BadgeIcon)}</span>` : "";
 
-  return divIcon({
+  const icon = divIcon({
     className: classes,
     html: `<div class="map-symbol-marker__inner" style="--marker-color:${color}">${renderMarkerIconMarkup(Icon)}${badge}</div>`,
     iconSize: [38, 38],
@@ -185,6 +192,8 @@ function mapSymbolIcon({
     popupAnchor: [0, -18],
     tooltipAnchor: [0, -18],
   });
+  mapSymbolIconCache.set(cacheKey, icon);
+  return icon;
 }
 
 function clusterMapIcon({
@@ -196,17 +205,23 @@ function clusterMapIcon({
   hasMustSee: boolean;
   hasPriority: boolean;
 }) {
+  const cacheKey = `${count}|${hasMustSee ? "1" : "0"}|${hasPriority ? "1" : "0"}`;
+  const cached = clusterIconCache.get(cacheKey);
+  if (cached) return cached;
+
   const classes = ["map-cluster-marker", hasMustSee ? "must-see" : "", hasPriority ? "priority" : ""]
     .filter(Boolean)
     .join(" ");
 
-  return divIcon({
+  const icon = divIcon({
     className: classes,
     html: `<div class="map-cluster-marker__inner"><span>${count}</span></div>`,
     iconSize: [42, 42],
     iconAnchor: [21, 21],
     tooltipAnchor: [0, -18],
   });
+  clusterIconCache.set(cacheKey, icon);
+  return icon;
 }
 
 function highlightMapIcon({
@@ -505,6 +520,7 @@ function App() {
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const deferredSearchQuery = useDeferredValue(searchQuery);
 
   useEffect(() => {
     saveSettings(settings);
@@ -568,7 +584,7 @@ function App() {
         : [],
     [mapDetailHighlight],
   );
-  const normalizedSearch = searchQuery.trim().toLowerCase();
+  const normalizedSearch = deferredSearchQuery.trim().toLowerCase();
   const matchesSearch = (highlight: Highlight) => {
     if (!normalizedSearch) return true;
     return highlightSearchIndex.get(highlight.id)?.includes(normalizedSearch) ?? false;
