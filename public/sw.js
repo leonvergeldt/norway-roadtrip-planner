@@ -1,4 +1,4 @@
-const APP_CACHE = "norway-planner-app-v5";
+﻿const APP_CACHE = "norway-planner-app-v6";
 const RUNTIME_CACHE = "norway-planner-runtime-v1";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
@@ -9,6 +9,8 @@ const APP_SHELL = [
   `${BASE_PATH}index.html`,
   `${BASE_PATH}manifest.webmanifest`,
   `${BASE_PATH}icon.svg`,
+  `${BASE_PATH}icon-192.png`,
+  `${BASE_PATH}icon-512.png`,
   `${BASE_PATH}images/city.svg`,
   `${BASE_PATH}images/coast.svg`,
   `${BASE_PATH}images/fjord.svg`,

@@ -1,7 +1,24 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512">
-  <rect width="512" height="512" rx="92" fill="#172033"/>
-  <path d="M100 346c46-76 84-120 116-132 26-10 49 2 71 36 14 22 29 30 45 25 18-5 41-30 80-78" fill="none" stroke="#7dd3fc" stroke-width="32" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M95 348h322" stroke="#f8fafc" stroke-width="28" stroke-linecap="round"/>
-  <circle cx="180" cy="214" r="34" fill="#facc15"/>
-  <path d="M328 124l34 70 78 12-56 55 13 78-69-37-70 37 14-78-57-55 78-12 35-70z" fill="#22c55e"/>
+﻿<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="Norway roadtrip planner logo">
+  <defs>
+    <linearGradient id="sky" x1="95" x2="420" y1="58" y2="456" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#e7f7fb"/>
+      <stop offset=".54" stop-color="#d7f0ea"/>
+      <stop offset="1" stop-color="#f9f3df"/>
+    </linearGradient>
+    <linearGradient id="fjord" x1="126" x2="404" y1="302" y2="426" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#38bdf8"/>
+      <stop offset="1" stop-color="#0f766e"/>
+    </linearGradient>
+  </defs>
+  <rect width="512" height="512" rx="112" fill="#112137"/>
+  <circle cx="256" cy="248" r="176" fill="url(#sky)"/>
+  <path d="M113 314c36-64 70-107 103-129 20-13 41-3 60 31l24 43c10 18 28 22 44 9 19-16 37-51 60-105 22 40 38 89 45 141-55 35-113 54-178 55-59 1-109-13-158-45Z" fill="#235142"/>
+  <path d="M137 292c29-46 56-79 80-96 16-11 30-3 43 22l18 34c8 16 25 18 38 5 17-18 35-54 55-101 8 14 17 34 24 59-23 48-51 80-81 96-25 14-52 14-84 6-27-7-57-16-93-25Z" fill="#f8fafc"/>
+  <path d="M120 342c45-27 85-39 119-32 39 8 67 39 112 38 34 0 64-14 91-34-23 66-77 113-145 126-70 13-141-12-183-64 1-13 3-24 6-34Z" fill="url(#fjord)"/>
+  <path d="M142 374c37-15 70-20 99-16 43 6 69 29 112 24" fill="none" stroke="#e0f2fe" stroke-linecap="round" stroke-width="18"/>
+  <path d="M174 397c35-1 70 12 103 34" fill="none" stroke="#f8fafc" stroke-linecap="round" stroke-width="19"/>
+  <path d="M174 397c35-1 70 12 103 34" fill="none" stroke="#172033" stroke-dasharray="2 34" stroke-linecap="round" stroke-width="4"/>
+  <path d="M348 87c-40 0-72 32-72 72 0 53 72 129 72 129s72-76 72-129c0-40-32-72-72-72Z" fill="#e11d48"/>
+  <circle cx="348" cy="159" r="29" fill="#fff7ed"/>
+  <path d="m348 140 7 13 15 2-11 11 3 15-14-7-14 7 3-15-11-11 15-2 7-13Z" fill="#f59e0b"/>
 </svg>
