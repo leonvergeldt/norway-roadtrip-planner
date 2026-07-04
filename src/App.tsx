@@ -1270,7 +1270,7 @@ function App() {
                       title="Gebruik deze slaapbasis als startpunt"
                     >
                       <MapPinned size={14} />
-                      <span>Start</span>
+                      <span>Start hier</span>
                     </button>
                   </div>
                   <p>{sleepBase.description}</p>
@@ -1279,15 +1279,15 @@ function App() {
                       <span key={tag}>{tag}</span>
                     ))}
                   </div>
-                  <details className="popup-details">
-                    <summary>Waarom hier slapen</summary>
-                    <p>{sleepBase.tripMoment}</p>
-                    <p className="note">{sleepBase.note}</p>
-                  </details>
-                  <details className="popup-details">
-                    <summary>Logische dagtrips</summary>
-                    <p>{sleepBase.dayTrips.join(", ")}</p>
-                  </details>
+                  <p className="sleepbase-moment">
+                    <strong>Moment:</strong> {sleepBase.tripMoment}
+                  </p>
+                  <p className="note">{sleepBase.note}</p>
+                  <div className="sleepbase-daytrips" aria-label="Logische dagtrips">
+                    {sleepBase.dayTrips.slice(0, 4).map((dayTrip) => (
+                      <span key={dayTrip}>{dayTrip}</span>
+                    ))}
+                  </div>
                 </div>
               </Popup>
             </Marker>

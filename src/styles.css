@@ -2142,6 +2142,30 @@ input[type="range"] {
   background: #ffe4e6;
 }
 
+.sleepbase-moment {
+  padding: 7px 8px;
+  background: #fff7f7;
+  border-radius: 7px;
+}
+
+.sleepbase-daytrips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+}
+
+.sleepbase-daytrips span {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 3px 7px;
+  color: #475569;
+  background: #eef2f5;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 850;
+}
+
 .sleepbase-tags span {
   display: inline-flex;
   align-items: center;
