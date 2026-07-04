@@ -1,6 +1,7 @@
 import { highlights } from "../data/highlights";
+import { sleepBases } from "../data/sleepBases";
 import { getRoadRouteEstimate } from "./routingService";
-import type { EvSettings, Highlight, RouteOption, RouteOptionKind, TravelStyle, TripDirection } from "../types";
+import type { EvSettings, Highlight, RouteOption, RouteOptionKind, SleepBase, TravelStyle, TripDirection } from "../types";
 
 const AVERAGE_ROAD_SPEED_KMH = 68;
 const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 4.75;
@@ -36,11 +37,13 @@ const regionProgress: Record<string, number> = {
   Oslo: 18,
 };
 
+type GeoPoint = Pick<Highlight, "lat" | "lng" | "region" | "name">;
+
 function toRadians(value: number) {
   return (value * Math.PI) / 180;
 }
 
-export function distanceKm(a: Highlight, b: Highlight) {
+export function distanceKm(a: Pick<GeoPoint, "lat" | "lng">, b: Pick<GeoPoint, "lat" | "lng">) {
   const earthRadiusKm = 6371;
   const dLat = toRadians(b.lat - a.lat);
   const dLng = toRadians(b.lng - a.lng);
@@ -108,6 +111,10 @@ function isDirectionallyAllowed(current: Highlight, target: Highlight, tripDirec
   return tripDirection === "outbound" ? delta > 0 : delta < 0;
 }
 
+function regionProgressValue(region: string, fallback: number) {
+  return regionProgress[region] ?? fallback;
+}
+
 function isLocalStayCandidate(current: Highlight, target: Highlight) {
   return current.region === target.region || Math.abs(directionDelta(current, target)) <= 4;
 }
@@ -161,7 +168,70 @@ function importanceScore(highlight: Highlight) {
 }
 
 function personalPriorityScore(highlight: Highlight, priorityHighlightIdSet: Set<string>) {
-  return priorityHighlightIdSet.has(highlight.id) ? 7 : 0;
+  return priorityHighlightIdSet.has(highlight.id) ? 14 : 0;
+}
+
+function sleepBaseDirectionScore(anchor: Highlight, sleepBase: SleepBase, tripDirection: TripDirection) {
+  if (tripDirection === "flexible") return 0;
+
+  const delta = regionProgressValue(sleepBase.region, routeProgress(anchor)) - routeProgress(anchor);
+  if (Math.abs(delta) <= 5) return 3;
+
+  return tripDirection === "outbound" ? (delta > 0 ? 6 : -10) : delta < 0 ? 6 : -10;
+}
+
+function sleepBaseReason(optionKind: RouteOptionKind, anchor: Highlight, sleepBase: SleepBase) {
+  if (optionKind === "blijven") {
+    return `Logisch als rustige basis rond ${anchor.name}; je houdt dagtrips dichtbij en hoeft de reis niet direct op te schuiven.`;
+  }
+
+  const matchingDayTrips = sleepBase.dayTrips
+    .filter((trip) => {
+      const tripText = trip.toLowerCase();
+      return anchor.name.toLowerCase().includes(tripText) || tripText.includes(anchor.name.toLowerCase().split(" ")[0]);
+    })
+    .slice(0, 2);
+
+  if (matchingDayTrips.length) {
+    return `Past als overnachtingsbasis na deze optie; ${matchingDayTrips.join(" en ")} liggen logisch in dezelfde sfeer.`;
+  }
+
+  return `Past als praktische vervolgplek na ${anchor.name}; handig om morgen vanuit ${sleepBase.region} verder te kiezen.`;
+}
+
+function suggestSleepBaseForOption(
+  current: Highlight,
+  stops: Highlight[],
+  kind: RouteOptionKind,
+  tripDirection: TripDirection,
+): RouteOption["suggestedSleepBase"] {
+  const anchor = stops[stops.length - 1] ?? current;
+  const currentBaseDistanceLimit = kind === "blijven" ? 85 : 135;
+
+  const candidates = sleepBases
+    .map((sleepBase) => {
+      const distance = distanceKm(anchor, sleepBase);
+      const currentDistance = distanceKm(current, sleepBase);
+      const regionBonus = sleepBase.region === anchor.region ? 14 : 0;
+      const dayTripBonus = sleepBase.dayTrips.some((trip) => anchor.name.toLowerCase().includes(trip.toLowerCase())) ? 10 : 0;
+      const directionBonus = sleepBaseDirectionScore(anchor, sleepBase, tripDirection);
+      const nearbyPenalty = distance > currentBaseDistanceLimit ? 24 : 0;
+      const score = 80 - distance * 0.42 - currentDistance * 0.05 + regionBonus + dayTripBonus + directionBonus - nearbyPenalty;
+
+      return { sleepBase, distance, score };
+    })
+    .filter((item) => item.distance <= (kind === "blijven" ? 90 : 150))
+    .sort((a, b) => b.score - a.score);
+
+  const best = candidates[0];
+  if (!best || best.score < 28) return undefined;
+
+  return {
+    name: best.sleepBase.name,
+    region: best.sleepBase.region,
+    distanceKm: Math.round(best.distance),
+    reason: sleepBaseReason(kind, anchor, best.sleepBase),
+  };
 }
 
 function routeEvMessage(distance: number, ev: EvSettings, mountainRoute: boolean) {
@@ -357,7 +427,7 @@ function scoreActivitySpread(stops: Highlight[], dayStyle: TravelStyle, kind: Ro
 function scoreMustSee(stops: Highlight[], priorityHighlightIds: string[]) {
   return clampScore(
     stops.reduce((total, stop) => {
-      const priorityBonus = priorityHighlightIds.includes(stop.id) ? 28 : 0;
+      const priorityBonus = priorityHighlightIds.includes(stop.id) ? 42 : 0;
       if (stop.importance === "must-see") return total + 42 + priorityBonus;
       if (stop.importance === "aanbevolen") return total + 22 + priorityBonus;
       return total + 8 + priorityBonus;
@@ -433,7 +503,7 @@ function explainScore(
   );
   notes.push(
     priorityStops.length
-      ? `Persoonlijke prioriteit telt mee door ${priorityStops.map((stop) => stop.name).join(", ")}.`
+      ? `Je eigen favorieten wegen extra zwaar mee door ${priorityStops.map((stop) => stop.name).join(", ")}.`
       : "Geen gemarkeerde zekerheid in deze optie; daardoor krijgt hij geen persoonlijke bonus.",
   );
   notes.push(
@@ -619,6 +689,7 @@ async function buildOption(
       highlight,
       distanceFromStartKm: Math.round(distanceKm(current, highlight)),
     })),
+    suggestedSleepBase: suggestSleepBaseForOption(current, allStops, kind, tripDirection),
     activityType,
     offlineLabels: buildOfflineLabels(
       kind,
@@ -701,6 +772,7 @@ async function buildStayOption(
       highlight,
       distanceFromStartKm: Math.round(distanceKm(current, highlight)),
     })),
+    suggestedSleepBase: suggestSleepBaseForOption(current, allStops, "blijven", "flexible"),
     activityType: "Rustdag lokaal",
     offlineLabels: buildOfflineLabels(
       "blijven",

@@ -122,6 +122,12 @@ export interface RouteOption {
   routeSource: "osrm" | "estimated";
   routePath?: Array<[number, number]>;
   stops: RouteStop[];
+  suggestedSleepBase?: {
+    name: string;
+    region: string;
+    distanceKm: number;
+    reason: string;
+  };
   activityType: string;
   offlineLabels: OfflineRouteLabel[];
   score: number;

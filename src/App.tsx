@@ -36,7 +36,6 @@ import {
 } from "lucide-react";
 import { categoryColors, categoryImages, categoryLabels, highlights } from "./data/highlights";
 import { sleepBases } from "./data/sleepBases";
-import { generateRouteOptions } from "./lib/routeLogic";
 import { defaultSettings, loadSettings, saveSettings } from "./lib/storage";
 import type { Category, Highlight, PersonalMapLayer, PlannerSettings, RouteOption, SleepBase, TravelStyle, TripDirection } from "./types";
 
@@ -305,7 +304,12 @@ function buildHighlightClusters({
     const latKey = Math.floor(highlight.lat / cellSize);
     const lngKey = Math.floor(highlight.lng / cellSize);
     const key = `${latKey}:${lngKey}`;
-    buckets.set(key, [...(buckets.get(key) ?? []), highlight]);
+    const bucket = buckets.get(key);
+    if (bucket) {
+      bucket.push(highlight);
+    } else {
+      buckets.set(key, [highlight]);
+    }
   });
 
   const clusters: HighlightCluster[] = [];
@@ -838,6 +842,7 @@ function App() {
     setMapFocusMode(false);
     setIsRouting(true);
     try {
+      const { generateRouteOptions } = await import("./lib/routeLogic");
       const nextOptions = await generateRouteOptions(
         currentHighlight,
         settings.dayStyle,
@@ -1641,6 +1646,18 @@ function App() {
                 <BatteryCharging size={16} />
                 {option.evMessage}
               </div>
+              {option.suggestedSleepBase && (
+                <div className="sleepbase-suggestion">
+                  <Home size={16} />
+                  <div>
+                    <strong>Logische slaapbasis: {option.suggestedSleepBase.name}</strong>
+                    <p>
+                      {option.suggestedSleepBase.region} - ongeveer {option.suggestedSleepBase.distanceKm} km vanaf de laatste stop.
+                      {" "}{option.suggestedSleepBase.reason}
+                    </p>
+                  </div>
+                </div>
+              )}
               <div className="stops">
                 {option.stops.slice(0, 3).map((stop) => (
                   <button

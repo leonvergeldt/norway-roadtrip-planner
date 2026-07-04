@@ -1196,6 +1196,35 @@ input[type="range"] {
   background: #fee2e2;
 }
 
+.sleepbase-suggestion {
+  display: grid;
+  grid-template-columns: 18px minmax(0, 1fr);
+  gap: 8px;
+  align-items: start;
+  padding: 9px 10px;
+  color: #7f1d1d;
+  background: #fff1f2;
+  border: 1px solid #ffe4e6;
+  border-radius: 7px;
+}
+
+.sleepbase-suggestion svg {
+  margin-top: 1px;
+}
+
+.sleepbase-suggestion strong {
+  display: block;
+  color: #7f1d1d;
+  font-size: 0.82rem;
+}
+
+.sleepbase-suggestion p {
+  margin-top: 3px;
+  color: #526070;
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
 .score-panel,
 .more-info {
   display: grid;
