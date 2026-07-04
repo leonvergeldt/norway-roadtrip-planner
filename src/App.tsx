@@ -121,6 +121,28 @@ function mapSymbolIcon({
   });
 }
 
+function clusterMapIcon({
+  count,
+  hasMustSee,
+  hasPriority,
+}: {
+  count: number;
+  hasMustSee: boolean;
+  hasPriority: boolean;
+}) {
+  const classes = ["map-cluster-marker", hasMustSee ? "must-see" : "", hasPriority ? "priority" : ""]
+    .filter(Boolean)
+    .join(" ");
+
+  return divIcon({
+    className: classes,
+    html: `<div class="map-cluster-marker__inner"><span>${count}</span></div>`,
+    iconSize: [42, 42],
+    iconAnchor: [21, 21],
+    tooltipAnchor: [0, -18],
+  });
+}
+
 function highlightMapIcon({
   highlight,
   isCurrent,
@@ -206,6 +228,22 @@ function FocusHighlight({ highlight }: { highlight?: Highlight }) {
   return null;
 }
 
+function TrackMapZoom({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+  const map = useMap();
+
+  useEffect(() => {
+    onZoomChange(map.getZoom());
+  }, [map, onZoomChange]);
+
+  useMapEvents({
+    zoomend() {
+      onZoomChange(map.getZoom());
+    },
+  });
+
+  return null;
+}
+
 function MapClickPicker({
   enabled,
   onPick,
@@ -221,6 +259,111 @@ function MapClickPicker({
   });
 
   return null;
+}
+
+type HighlightCluster = {
+  id: string;
+  highlights: Highlight[];
+  lat: number;
+  lng: number;
+  hasMustSee: boolean;
+  hasPriority: boolean;
+};
+
+function clusterCellSizeForZoom(zoom: number) {
+  if (zoom >= 8) return 0;
+  if (zoom <= 5) return 1.8;
+  if (zoom <= 6) return 1.05;
+  return 0.55;
+}
+
+function buildHighlightClusters({
+  highlights,
+  pinnedIds,
+  priorityIds,
+  zoom,
+  disableClustering,
+}: {
+  highlights: Highlight[];
+  pinnedIds: Set<string>;
+  priorityIds: Set<string>;
+  zoom: number;
+  disableClustering: boolean;
+}) {
+  const cellSize = disableClustering ? 0 : clusterCellSizeForZoom(zoom);
+  if (!cellSize) return { clusters: [] as HighlightCluster[], individualHighlights: highlights };
+
+  const buckets = new Map<string, Highlight[]>();
+  const individualHighlights: Highlight[] = [];
+
+  highlights.forEach((highlight) => {
+    if (pinnedIds.has(highlight.id)) {
+      individualHighlights.push(highlight);
+      return;
+    }
+
+    const latKey = Math.floor(highlight.lat / cellSize);
+    const lngKey = Math.floor(highlight.lng / cellSize);
+    const key = `${latKey}:${lngKey}`;
+    buckets.set(key, [...(buckets.get(key) ?? []), highlight]);
+  });
+
+  const clusters: HighlightCluster[] = [];
+
+  buckets.forEach((bucket, key) => {
+    if (bucket.length === 1) {
+      individualHighlights.push(bucket[0]);
+      return;
+    }
+
+    const lat = bucket.reduce((sum, highlight) => sum + highlight.lat, 0) / bucket.length;
+    const lng = bucket.reduce((sum, highlight) => sum + highlight.lng, 0) / bucket.length;
+    clusters.push({
+      id: `cluster-${zoom}-${key}`,
+      highlights: bucket,
+      lat,
+      lng,
+      hasMustSee: bucket.some((highlight) => highlight.importance === "must-see"),
+      hasPriority: bucket.some((highlight) => priorityIds.has(highlight.id)),
+    });
+  });
+
+  return { clusters, individualHighlights };
+}
+
+function HighlightClusterMarker({ cluster }: { cluster: HighlightCluster }) {
+  const map = useMap();
+  const label =
+    cluster.highlights.length === 1 ? "1 highlight" : `${cluster.highlights.length} highlights`;
+  const sampleNames = cluster.highlights
+    .slice(0, 4)
+    .map((highlight) => highlight.name)
+    .join(", ");
+
+  return (
+    <Marker
+      position={[cluster.lat, cluster.lng]}
+      icon={clusterMapIcon({
+        count: cluster.highlights.length,
+        hasMustSee: cluster.hasMustSee,
+        hasPriority: cluster.hasPriority,
+      })}
+      eventHandlers={{
+        click: () => {
+          const bounds = cluster.highlights.map((highlight) => [highlight.lat, highlight.lng] as [number, number]);
+          map.fitBounds(bounds, {
+            padding: [72, 72],
+            maxZoom: Math.max(map.getZoom() + 2, 8),
+          });
+        },
+      }}
+    >
+      <Tooltip direction="top" offset={[0, -12]}>
+        {label}: {sampleNames}
+        {cluster.highlights.length > 4 ? "..." : ""}
+      </Tooltip>
+    </Marker>
+  );
 }
 
 function hasNavigationTarget(highlight: Highlight) {
@@ -329,6 +472,7 @@ function App() {
   const [isCachingMap, setIsCachingMap] = useState(false);
   const [isLayerWidgetOpen, setIsLayerWidgetOpen] = useState(false);
   const [offlineMapMessage, setOfflineMapMessage] = useState<string | undefined>();
+  const [mapZoom, setMapZoom] = useState(6);
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -507,6 +651,23 @@ function App() {
   const navigationTargets = selectedOption
     ? [currentHighlight, ...selectedOption.stops.map((stop) => stop.highlight)].filter(hasNavigationTarget)
     : [];
+  const pinnedHighlightIds = useMemo(() => {
+    const pinned = new Set<string>([currentHighlight.id, selectedHighlightId]);
+    if (mapDetailHighlightId) pinned.add(mapDetailHighlightId);
+    selectedOption?.stops.forEach((stop) => pinned.add(stop.highlight.id));
+    return pinned;
+  }, [currentHighlight.id, mapDetailHighlightId, selectedHighlightId, selectedOption]);
+  const { clusters: highlightClusters, individualHighlights } = useMemo(
+    () =>
+      buildHighlightClusters({
+        highlights: filteredHighlights,
+        pinnedIds: pinnedHighlightIds,
+        priorityIds: priorityHighlightIdSet,
+        zoom: mapZoom,
+        disableClustering: Boolean(normalizedSearch),
+      }),
+    [filteredHighlights, mapZoom, normalizedSearch, pinnedHighlightIds, priorityHighlightIdSet],
+  );
 
   function clearCurrentRouteOptions() {
     setRouteOptions([]);
@@ -975,13 +1136,18 @@ function App() {
           </aside>
         )}
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
+          <TrackMapZoom onZoomChange={setMapZoom} />
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
           />
 
-          {filteredHighlights.map((highlight) => {
+          {highlightClusters.map((cluster) => (
+            <HighlightClusterMarker key={cluster.id} cluster={cluster} />
+          ))}
+
+          {individualHighlights.map((highlight) => {
             const isCurrent = highlight.id === currentHighlight.id;
             const isSelected = highlight.id === selectedHighlightId;
             const isPriority = priorityHighlightIdSet.has(highlight.id);

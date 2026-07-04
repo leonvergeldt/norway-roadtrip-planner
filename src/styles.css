@@ -542,6 +542,50 @@ button {
   height: 10px;
 }
 
+.map-cluster-marker {
+  display: grid;
+  width: 42px !important;
+  height: 42px !important;
+  place-items: center;
+  background: transparent;
+  border: 0;
+}
+
+.map-cluster-marker__inner {
+  display: grid;
+  width: 40px;
+  height: 40px;
+  place-items: center;
+  color: #ffffff;
+  background: #172033;
+  border: 2px solid #ffffff;
+  border-radius: 999px;
+  box-shadow:
+    0 12px 24px rgba(23, 32, 51, 0.26),
+    0 0 0 5px rgba(23, 32, 51, 0.14);
+}
+
+.map-cluster-marker__inner span {
+  font-size: 0.88rem;
+  font-weight: 950;
+  line-height: 1;
+}
+
+.map-cluster-marker.must-see .map-cluster-marker__inner {
+  background: #0f766e;
+  box-shadow:
+    0 12px 24px rgba(15, 118, 110, 0.24),
+    0 0 0 5px rgba(15, 118, 110, 0.17);
+}
+
+.map-cluster-marker.priority .map-cluster-marker__inner {
+  color: #172033;
+  background: #facc15;
+  box-shadow:
+    0 12px 24px rgba(120, 83, 0, 0.2),
+    0 0 0 5px rgba(250, 204, 21, 0.22);
+}
+
 .leaflet-container {
   font: inherit;
   background: #dce7e5;
