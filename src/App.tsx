@@ -1,4 +1,4 @@
-import { Fragment, Suspense, lazy, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
+import { Fragment, Suspense, lazy, useCallback, useDeferredValue, useEffect, useMemo, useRef, useState } from "react";
 import { MapContainer, Marker, Popup, TileLayer, Tooltip, Polyline, useMap, useMapEvents } from "react-leaflet";
 import { divIcon } from "leaflet";
 import type { Marker as LeafletMarker, LatLngExpression } from "leaflet";
@@ -273,17 +273,40 @@ function FocusHighlight({ highlight }: { highlight?: Highlight }) {
   return null;
 }
 
-function TrackMapZoom({ onZoomChange }: { onZoomChange: (zoom: number) => void }) {
+type GeographicBounds = {
+  south: number;
+  west: number;
+  north: number;
+  east: number;
+};
+
+type MapViewport = {
+  zoom: number;
+  bounds?: GeographicBounds;
+};
+
+function TrackMapViewport({ onChange }: { onChange: (viewport: MapViewport) => void }) {
   const map = useMap();
 
+  const reportViewport = useCallback(() => {
+    const bounds = map.getBounds();
+    onChange({
+      zoom: map.getZoom(),
+      bounds: {
+        south: bounds.getSouth(),
+        west: bounds.getWest(),
+        north: bounds.getNorth(),
+        east: bounds.getEast(),
+      },
+    });
+  }, [map, onChange]);
+
   useEffect(() => {
-    onZoomChange(map.getZoom());
-  }, [map, onZoomChange]);
+    reportViewport();
+  }, [reportViewport]);
 
   useMapEvents({
-    zoomend() {
-      onZoomChange(map.getZoom());
-    },
+    moveend: reportViewport,
   });
 
   return null;
@@ -316,10 +339,28 @@ type HighlightCluster = {
 };
 
 function clusterCellSizeForZoom(zoom: number) {
-  if (zoom >= 8) return 0;
+  if (zoom >= 11) return 0;
   if (zoom <= 5) return 1.8;
   if (zoom <= 6) return 1.05;
-  return 0.55;
+  if (zoom === 7) return 0.55;
+  if (zoom === 8) return 0.28;
+  if (zoom === 9) return 0.14;
+  return 0.07;
+}
+
+function isInsidePaddedViewport(
+  point: { lat: number; lng: number },
+  bounds: GeographicBounds,
+  paddingRatio = 0.3,
+) {
+  const latitudePadding = (bounds.north - bounds.south) * paddingRatio;
+  const longitudePadding = (bounds.east - bounds.west) * paddingRatio;
+  return (
+    point.lat >= bounds.south - latitudePadding &&
+    point.lat <= bounds.north + latitudePadding &&
+    point.lng >= bounds.west - longitudePadding &&
+    point.lng <= bounds.east + longitudePadding
+  );
 }
 
 function buildHighlightClusters({
@@ -516,7 +557,7 @@ function App() {
   const [isCachingMap, setIsCachingMap] = useState(false);
   const [isLayerWidgetOpen, setIsLayerWidgetOpen] = useState(false);
   const [offlineMapMessage, setOfflineMapMessage] = useState<string | undefined>();
-  const [mapZoom, setMapZoom] = useState(6);
+  const [mapViewport, setMapViewport] = useState<MapViewport>({ zoom: 6 });
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
@@ -565,9 +606,13 @@ function App() {
   );
 
   const selectedDatasetHighlight = highlightById.get(settings.currentHighlightId) ?? highlights[0];
-  const currentHighlight = settings.customStart
-    ? makeCustomStart(settings.customStart.lat, settings.customStart.lng, settings.customStart.name)
-    : selectedDatasetHighlight;
+  const currentHighlight = useMemo(
+    () =>
+      settings.customStart
+        ? makeCustomStart(settings.customStart.lat, settings.customStart.lng, settings.customStart.name)
+        : selectedDatasetHighlight,
+    [selectedDatasetHighlight, settings.customStart],
+  );
 
   const selectedOption = routeOptions.find((option) => option.id === selectedOptionId);
   const focusedHighlight =
@@ -673,16 +718,29 @@ function App() {
     selectedOption?.stops.forEach((stop) => pinned.add(stop.highlight.id));
     return pinned;
   }, [currentHighlight.id, mapDetailHighlightId, selectedHighlightId, selectedOption]);
+  const renderedHighlights = useMemo(() => {
+    const bounds = mapViewport.bounds;
+    if (!bounds) return filteredHighlights;
+    return filteredHighlights.filter(
+      (highlight) =>
+        pinnedHighlightIds.has(highlight.id) || isInsidePaddedViewport(highlight, bounds),
+    );
+  }, [filteredHighlights, mapViewport.bounds, pinnedHighlightIds]);
+  const renderedSleepBases = useMemo(() => {
+    const bounds = mapViewport.bounds;
+    if (!bounds) return visibleSleepBases;
+    return visibleSleepBases.filter((sleepBase) => isInsidePaddedViewport(sleepBase, bounds));
+  }, [mapViewport.bounds, visibleSleepBases]);
   const { clusters: highlightClusters, individualHighlights } = useMemo(
     () =>
       buildHighlightClusters({
-        highlights: filteredHighlights,
+        highlights: renderedHighlights,
         pinnedIds: pinnedHighlightIds,
         priorityIds: priorityHighlightIdSet,
-        zoom: mapZoom,
+        zoom: mapViewport.zoom,
         disableClustering: Boolean(normalizedSearch),
       }),
-    [filteredHighlights, mapZoom, normalizedSearch, pinnedHighlightIds, priorityHighlightIdSet],
+    [mapViewport.zoom, normalizedSearch, pinnedHighlightIds, priorityHighlightIdSet, renderedHighlights],
   );
 
   function clearCurrentRouteOptions() {
@@ -1155,7 +1213,7 @@ function App() {
           </aside>
         )}
         <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
-          <TrackMapZoom onZoomChange={setMapZoom} />
+          <TrackMapViewport onChange={setMapViewport} />
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
@@ -1264,7 +1322,7 @@ function App() {
             );
           })}
 
-          {visibleSleepBases.map((sleepBase) => (
+          {renderedSleepBases.map((sleepBase) => (
             <Marker
               key={sleepBase.id}
               position={[sleepBase.lat, sleepBase.lng]}
