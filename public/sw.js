@@ -3,6 +3,8 @@ const RUNTIME_CACHE = "norway-planner-runtime-v2";
 const TILE_CACHE = "norway-planner-tiles-v1";
 const ROUTE_CACHE = "norway-planner-routes-v1";
 const IMAGE_CACHE = "norway-planner-images-v1";
+const CACHE_TRIM_INTERVAL = 24;
+const cacheWritesSinceTrim = new Map();
 const BASE_PATH = new URL(self.registration.scope).pathname;
 const APP_SHELL = [
   BASE_PATH,
@@ -109,7 +111,7 @@ async function cacheFirst(request, cacheName, maxEntries) {
   const response = await fetch(request);
   if (response.ok || response.type === "opaque") {
     await cache.put(request, response.clone());
-    if (maxEntries) await trimCache(cacheName, maxEntries);
+    if (maxEntries) await trimCacheOccasionally(cacheName, maxEntries);
   }
   return response;
 }
@@ -131,10 +133,17 @@ async function networkFirst(request, cacheName, fallbackUrl) {
   }
 }
 
-async function trimCache(cacheName, maxEntries) {
+async function trimCacheOccasionally(cacheName, maxEntries) {
+  const writeCount = (cacheWritesSinceTrim.get(cacheName) ?? 0) + 1;
+  if (writeCount < CACHE_TRIM_INTERVAL) {
+    cacheWritesSinceTrim.set(cacheName, writeCount);
+    return;
+  }
+
+  cacheWritesSinceTrim.set(cacheName, 0);
   const cache = await caches.open(cacheName);
   const keys = await cache.keys();
-  if (keys.length <= maxEntries) return;
-  await cache.delete(keys[0]);
-  await trimCache(cacheName, maxEntries);
+  const overflow = keys.length - maxEntries;
+  if (overflow <= 0) return;
+  await Promise.all(keys.slice(0, overflow).map((request) => cache.delete(request)));
 }

@@ -267,7 +267,16 @@ function FocusHighlight({ highlight }: { highlight?: Highlight }) {
 
   useEffect(() => {
     if (!highlight) return;
-    map.flyTo([highlight.lat, highlight.lng], Math.max(map.getZoom(), 8), { duration: 0.65 });
+    const target: [number, number] = [highlight.lat, highlight.lng];
+    const targetZoom = Math.max(map.getZoom(), 8);
+    const distanceMeters = map.getCenter().distanceTo(target);
+
+    if (distanceMeters > 120_000) {
+      map.setView(target, targetZoom, { animate: false });
+      return;
+    }
+
+    map.flyTo(target, targetZoom, { duration: 0.45 });
   }, [highlight, map]);
 
   return null;
@@ -1212,12 +1221,20 @@ function App() {
             )}
           </aside>
         )}
-        <MapContainer center={[60.72, 6.9]} zoom={6} minZoom={5} maxZoom={15} zoomControl={false} className="map">
+        <MapContainer
+          center={[currentHighlight.lat, currentHighlight.lng]}
+          zoom={8}
+          minZoom={5}
+          maxZoom={15}
+          zoomControl={false}
+          className="map"
+        >
           <TrackMapViewport onChange={setMapViewport} />
           <MapClickPicker enabled={isPickingStart} onPick={setCustomStart} />
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
+            updateWhenZooming={false}
           />
 
           {highlightClusters.map((cluster) => (
