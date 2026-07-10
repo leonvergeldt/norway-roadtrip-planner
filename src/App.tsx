@@ -1227,6 +1227,7 @@ function App() {
           minZoom={5}
           maxZoom={15}
           zoomControl={false}
+          fadeAnimation={false}
           className="map"
         >
           <TrackMapViewport onChange={setMapViewport} />
@@ -1234,7 +1235,9 @@ function App() {
           <TileLayer
             attribution='&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a>'
             url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
-            updateWhenZooming={false}
+            updateWhenIdle={false}
+            updateWhenZooming={true}
+            keepBuffer={3}
           />
 
           {highlightClusters.map((cluster) => (
