@@ -294,6 +294,13 @@ type MapViewport = {
   bounds?: GeographicBounds;
 };
 
+type OfflineDownloadProgress = {
+  completed: number;
+  total: number;
+  failed: number;
+  phase: string;
+};
+
 function TrackMapViewport({ onChange }: { onChange: (viewport: MapViewport) => void }) {
   const map = useMap();
 
@@ -530,6 +537,10 @@ function buildOfflinePhotoUrls() {
   );
 }
 
+const OFFLINE_TILE_URLS = buildOfflineTileUrls();
+const OFFLINE_PHOTO_URLS = buildOfflinePhotoUrls();
+const OFFLINE_PACKAGE_TOTAL = OFFLINE_TILE_URLS.length + OFFLINE_PHOTO_URLS.length;
+
 function makeCustomStart(lat: number, lng: number, name = "Geprikt startpunt"): Highlight {
   return {
     id: `custom-start-${lat.toFixed(5)}-${lng.toFixed(5)}`,
@@ -564,13 +575,20 @@ function App() {
   const [locationMessage, setLocationMessage] = useState<string | undefined>();
   const [searchQuery, setSearchQuery] = useState("");
   const [isCachingMap, setIsCachingMap] = useState(false);
+  const [isOfflineWidgetOpen, setIsOfflineWidgetOpen] = useState(false);
+  const [offlineProgress, setOfflineProgress] = useState<OfflineDownloadProgress>();
   const [isLayerWidgetOpen, setIsLayerWidgetOpen] = useState(false);
   const [offlineMapMessage, setOfflineMapMessage] = useState<string | undefined>();
   const [mapViewport, setMapViewport] = useState<MapViewport>({ zoom: 6 });
   const [isOnline, setIsOnline] = useState(() =>
     typeof navigator === "undefined" ? true : navigator.onLine,
   );
+  const offlineJobIdRef = useRef<string | undefined>(undefined);
+  const offlineWatchdogRef = useRef<number | undefined>(undefined);
   const deferredSearchQuery = useDeferredValue(searchQuery);
+  const offlineProgressPercent = offlineProgress?.total
+    ? Math.round((offlineProgress.completed / offlineProgress.total) * 100)
+    : 0;
 
   useEffect(() => {
     saveSettings(settings);
@@ -583,6 +601,47 @@ function App() {
     return () => {
       window.removeEventListener("online", updateOnlineState);
       window.removeEventListener("offline", updateOnlineState);
+    };
+  }, []);
+
+  useEffect(() => {
+    if (!("serviceWorker" in navigator)) return;
+
+    const handleOfflineProgress = (event: MessageEvent) => {
+      const data = event.data;
+      if (!data || data.jobId !== offlineJobIdRef.current) return;
+      if (data.type !== "CACHE_OFFLINE_PROGRESS" && data.type !== "CACHE_OFFLINE_COMPLETE") return;
+
+      if (offlineWatchdogRef.current !== undefined) {
+        window.clearTimeout(offlineWatchdogRef.current);
+        offlineWatchdogRef.current = undefined;
+      }
+
+      const progress = {
+        completed: Number(data.completed) || 0,
+        total: Number(data.total) || OFFLINE_PACKAGE_TOTAL,
+        failed: Number(data.failed) || 0,
+        phase: typeof data.phase === "string" ? data.phase : "kaart",
+      };
+      setOfflineProgress(progress);
+
+      if (data.type === "CACHE_OFFLINE_COMPLETE") {
+        setIsCachingMap(false);
+        offlineJobIdRef.current = undefined;
+        setOfflineMapMessage(
+          progress.failed
+            ? `${progress.completed - progress.failed} van ${progress.total} onderdelen opgeslagen; ${progress.failed} konden niet worden gedownload.`
+            : `Offline kaartbasis gereed: ${progress.total} onderdelen opgeslagen.`,
+        );
+      }
+    };
+
+    navigator.serviceWorker.addEventListener("message", handleOfflineProgress);
+    return () => {
+      navigator.serviceWorker.removeEventListener("message", handleOfflineProgress);
+      if (offlineWatchdogRef.current !== undefined) {
+        window.clearTimeout(offlineWatchdogRef.current);
+      }
     };
   }, []);
 
@@ -828,6 +887,7 @@ function App() {
 
   async function prepareOfflineMap() {
     setOfflineMapMessage(undefined);
+    setIsOfflineWidgetOpen(true);
 
     if (!("serviceWorker" in navigator)) {
       setOfflineMapMessage("Offline kaartcache werkt niet in deze browser.");
@@ -841,17 +901,23 @@ function App() {
       return;
     }
 
-    const urls = buildOfflineTileUrls();
-    const photoUrls = buildOfflinePhotoUrls();
+    const jobId = `offline-${Date.now()}`;
+    offlineJobIdRef.current = jobId;
     setIsCachingMap(true);
-    worker.postMessage({ type: "CACHE_TILES", urls });
-    worker.postMessage({ type: "CACHE_URLS", urls: photoUrls });
-    window.setTimeout(() => {
+    setOfflineProgress({ completed: 0, total: OFFLINE_PACKAGE_TOTAL, failed: 0, phase: "kaart" });
+    worker.postMessage({
+      type: "CACHE_OFFLINE_PACKAGE",
+      jobId,
+      tiles: OFFLINE_TILE_URLS,
+      photos: OFFLINE_PHOTO_URLS,
+    });
+
+    offlineWatchdogRef.current = window.setTimeout(() => {
+      if (offlineJobIdRef.current !== jobId) return;
+      offlineJobIdRef.current = undefined;
       setIsCachingMap(false);
-      setOfflineMapMessage(
-        `${urls.length} kaarttegels en ${photoUrls.length} foto's voorbereid. Detailtegels werken offline nadat je ze online hebt bekeken.`,
-      );
-    }, 1800);
+      setOfflineMapMessage("De offlinefunctie is bijgewerkt. Ververs de app en probeer de download opnieuw.");
+    }, 8000);
   }
 
   function setCustomStart(lat: number, lng: number, name = "Geprikt startpunt") {
@@ -1014,14 +1080,14 @@ function App() {
           </div>
           <div className="map-action-row">
             <button
-              className="map-action-button"
+              className={isOfflineWidgetOpen ? "map-action-button active" : "map-action-button"}
               type="button"
-              onClick={prepareOfflineMap}
-              disabled={isCachingMap || !isOnline}
-              title="Bewaar compacte kaartbasis voor offline gebruik"
+              onClick={() => setIsOfflineWidgetOpen((current) => !current)}
+              title="Bekijk en download de offline kaartbasis"
+              aria-expanded={isOfflineWidgetOpen}
             >
               <Download size={16} />
-              <span>{isCachingMap ? "Opslaan..." : "Kaartbasis"}</span>
+              <span>{isCachingMap ? `${offlineProgressPercent}%` : "Kaartbasis"}</span>
             </button>
             <button
               className="map-action-button"
@@ -1055,6 +1121,74 @@ function App() {
               <span>Lagen</span>
             </button>
           </div>
+          {isOfflineWidgetOpen && (
+            <div className="map-offline-popover">
+              <header>
+                <div className="map-offline-heading">
+                  <Download size={17} />
+                  <div>
+                    <strong>Offline kaartbasis</strong>
+                    <span>Zuid- en Midden-Noorwegen</span>
+                  </div>
+                </div>
+                <button
+                  type="button"
+                  className="map-offline-close"
+                  onClick={() => setIsOfflineWidgetOpen(false)}
+                  aria-label="Sluit offline kaartvenster"
+                >
+                  <X size={16} />
+                </button>
+              </header>
+              <p className="map-offline-area">
+                <strong>Gebied:</strong> Kristiansand tot Atlantic Road, inclusief Stavanger, Bergen,
+                Geiranger en Oslo.
+              </p>
+              <div className="map-offline-meta" aria-label="Inhoud offline pakket">
+                <span>Zoom 5-8</span>
+                <span>{OFFLINE_TILE_URLS.length} tegels</span>
+                <span>{OFFLINE_PHOTO_URLS.length} foto's</span>
+              </div>
+              <p className="map-offline-note">
+                Dit geeft overzicht en regioniveau. Straatdetail wordt bewaard zodra je het online bekijkt.
+              </p>
+              {offlineProgress && (
+                <div className="map-offline-progress" aria-live="polite">
+                  <div>
+                    <span>{isCachingMap ? `Bezig met ${offlineProgress.phase}` : "Downloadstatus"}</span>
+                    <strong>{offlineProgressPercent}%</strong>
+                  </div>
+                  <progress max={offlineProgress.total} value={offlineProgress.completed} />
+                  <small>
+                    {offlineProgress.completed} van {offlineProgress.total}
+                    {offlineProgress.failed ? ` - ${offlineProgress.failed} mislukt` : ""}
+                  </small>
+                </div>
+              )}
+              {offlineMapMessage && <p className="map-offline-message">{offlineMapMessage}</p>}
+              <button
+                type="button"
+                className="map-offline-download"
+                onClick={prepareOfflineMap}
+                disabled={isCachingMap || !isOnline}
+              >
+                {isCachingMap ? (
+                  <>
+                    <span className="map-offline-spinner" aria-hidden="true" />
+                    Downloaden
+                  </>
+                ) : (
+                  <>
+                    <Download size={16} />
+                    {offlineProgress && offlineProgress.completed === offlineProgress.total
+                      ? "Pakket bijwerken"
+                      : "Download kaartbasis"}
+                  </>
+                )}
+              </button>
+              {!isOnline && <small className="map-offline-warning">Maak verbinding om dit pakket te downloaden.</small>}
+            </div>
+          )}
           {!!searchResults.length && (
             <div className="map-search-results">
               {searchResults.map((highlight) => (
@@ -1078,10 +1212,9 @@ function App() {
               <button type="button" onClick={clearCustomStart}>Wis</button>
             </div>
           )}
-          {(offlineMapMessage || locationMessage) && (
+          {locationMessage && (
             <div className="map-cluster-message">
-              {offlineMapMessage && <p>{offlineMapMessage}</p>}
-              {locationMessage && <p>{locationMessage}</p>}
+              <p>{locationMessage}</p>
             </div>
           )}
           {isLayerWidgetOpen && (

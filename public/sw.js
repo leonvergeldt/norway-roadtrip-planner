@@ -55,6 +55,11 @@ self.addEventListener("activate", (event) => {
 });
 
 self.addEventListener("message", (event) => {
+  if (event.data?.type === "CACHE_OFFLINE_PACKAGE") {
+    event.waitUntil(cacheOfflinePackage(event));
+    return;
+  }
+
   if (!Array.isArray(event.data?.urls)) return;
   const cacheName = event.data.type === "CACHE_TILES" ? TILE_CACHE : RUNTIME_CACHE;
   if (event.data.type !== "CACHE_URLS" && event.data.type !== "CACHE_TILES") return;
@@ -71,6 +76,57 @@ self.addEventListener("message", (event) => {
     ),
   );
 });
+
+async function cacheOfflinePackage(event) {
+  const jobId = event.data?.jobId;
+  const tileUrls = Array.isArray(event.data?.tiles) ? event.data.tiles : [];
+  const photoUrls = Array.isArray(event.data?.photos) ? event.data.photos : [];
+  const total = tileUrls.length + photoUrls.length;
+  const source = event.source;
+
+  if (!jobId || !source || total === 0) return;
+
+  const [tileCache, runtimeCache] = await Promise.all([
+    caches.open(TILE_CACHE),
+    caches.open(RUNTIME_CACHE),
+  ]);
+  const entries = [
+    ...tileUrls.map((url) => ({ url, cache: tileCache, phase: "kaart" })),
+    ...photoUrls.map((url) => ({ url, cache: runtimeCache, phase: "foto's" })),
+  ];
+  let nextIndex = 0;
+  let completed = 0;
+  let failed = 0;
+
+  const report = (type, phase) => {
+    source.postMessage({ type, jobId, completed, total, failed, phase });
+  };
+
+  report("CACHE_OFFLINE_PROGRESS", "kaart");
+
+  async function cacheWorker() {
+    while (nextIndex < entries.length) {
+      const entry = entries[nextIndex];
+      nextIndex += 1;
+
+      try {
+        const cached = await entry.cache.match(entry.url);
+        if (!cached) await entry.cache.add(entry.url);
+      } catch {
+        failed += 1;
+      } finally {
+        completed += 1;
+        if (completed === total || completed % 2 === 0) {
+          report("CACHE_OFFLINE_PROGRESS", entry.phase);
+        }
+      }
+    }
+  }
+
+  const workerCount = Math.min(4, entries.length);
+  await Promise.all(Array.from({ length: workerCount }, () => cacheWorker()));
+  report("CACHE_OFFLINE_COMPLETE", "gereed");
+}
 
 self.addEventListener("fetch", (event) => {
   const request = event.request;
