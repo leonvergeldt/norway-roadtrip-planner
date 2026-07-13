@@ -263,6 +263,31 @@ function FitRoute({ selectedOption }: { selectedOption?: RouteOption }) {
   return null;
 }
 
+function KeepMapSized() {
+  const map = useMap();
+
+  useEffect(() => {
+    const container = map.getContainer();
+    let animationFrame: number | undefined;
+
+    const refreshMapSize = () => {
+      if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
+      animationFrame = requestAnimationFrame(() => map.invalidateSize({ animate: false }));
+    };
+
+    const resizeObserver = new ResizeObserver(refreshMapSize);
+    resizeObserver.observe(container);
+    refreshMapSize();
+
+    return () => {
+      resizeObserver.disconnect();
+      if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
+    };
+  }, [map]);
+
+  return null;
+}
+
 function FocusHighlight({ highlight }: { highlight?: Highlight }) {
   const map = useMap();
 
@@ -1593,6 +1618,7 @@ function App() {
             </Fragment>
           ))}
 
+          <KeepMapSized />
           <FitRoute selectedOption={selectedOption} />
           <FocusHighlight highlight={focusedHighlight} />
         </MapContainer>
