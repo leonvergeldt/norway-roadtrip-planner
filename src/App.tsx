@@ -269,19 +269,36 @@ function KeepMapSized() {
   useEffect(() => {
     const container = map.getContainer();
     let animationFrame: number | undefined;
+    let settleTimer: number | undefined;
 
     const refreshMapSize = () => {
       if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
-      animationFrame = requestAnimationFrame(() => map.invalidateSize({ animate: false }));
+      if (settleTimer !== undefined) window.clearTimeout(settleTimer);
+      animationFrame = requestAnimationFrame(() => {
+        map.invalidateSize({ animate: false, pan: false });
+        settleTimer = window.setTimeout(
+          () => map.invalidateSize({ animate: false, pan: false }),
+          180,
+        );
+      });
     };
 
     const resizeObserver = new ResizeObserver(refreshMapSize);
     resizeObserver.observe(container);
+    window.addEventListener("resize", refreshMapSize);
+    window.addEventListener("orientationchange", refreshMapSize);
+    window.visualViewport?.addEventListener("resize", refreshMapSize);
+    window.visualViewport?.addEventListener("scroll", refreshMapSize);
     refreshMapSize();
 
     return () => {
       resizeObserver.disconnect();
+      window.removeEventListener("resize", refreshMapSize);
+      window.removeEventListener("orientationchange", refreshMapSize);
+      window.visualViewport?.removeEventListener("resize", refreshMapSize);
+      window.visualViewport?.removeEventListener("scroll", refreshMapSize);
       if (animationFrame !== undefined) cancelAnimationFrame(animationFrame);
+      if (settleTimer !== undefined) window.clearTimeout(settleTimer);
     };
   }, [map]);
 
@@ -881,6 +898,9 @@ function App() {
   }
 
   function setMapFocusMode(mapFocusMode: boolean) {
+    if (mapFocusMode && document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
     updateSettings({ mapFocusMode });
   }
 
@@ -1228,6 +1248,9 @@ function App() {
                   key={highlight.id}
                   type="button"
                   onClick={() => {
+                    if (document.activeElement instanceof HTMLElement) {
+                      document.activeElement.blur();
+                    }
                     setSearchQuery("");
                     openHighlightPopup(highlight);
                   }}
@@ -1436,7 +1459,7 @@ function App() {
                 <Tooltip direction="top" offset={[0, -8]}>
                   {highlight.name}{isCompleted ? " - gedaan" : ""}
                 </Tooltip>
-                <Popup>
+                <Popup autoPanPaddingTopLeft={[12, 118]} autoPanPaddingBottomRight={[12, 80]}>
                   <div className="popup">
                     <div className="popup-title-row">
                       <div>
@@ -1516,7 +1539,7 @@ function App() {
               <Tooltip direction="top" offset={[0, -8]}>
                 Slaapbasis: {sleepBase.name}
               </Tooltip>
-              <Popup>
+              <Popup autoPanPaddingTopLeft={[12, 118]} autoPanPaddingBottomRight={[12, 80]}>
                 <div className="popup sleepbase-popup">
                   <div className="popup-title-row">
                     <div>
@@ -1563,7 +1586,7 @@ function App() {
               <Tooltip permanent direction="top" offset={[0, -10]} className="custom-start-tooltip">
                 Geprikt startpunt
               </Tooltip>
-              <Popup>
+              <Popup autoPanPaddingTopLeft={[12, 118]} autoPanPaddingBottomRight={[12, 80]}>
                 <div className="popup navigation-popup">
                   <strong>Geprikt startpunt</strong>
                   <span>
@@ -1600,7 +1623,7 @@ function App() {
                 >
                   {index === 0 ? "Start route" : "Nav stop"}
                 </Tooltip>
-                <Popup>
+                <Popup autoPanPaddingTopLeft={[12, 118]} autoPanPaddingBottomRight={[12, 80]}>
                   <div className="popup navigation-popup">
                     <strong>{index === 0 ? "Startpunt routeberekening" : "Navigatiepunt"}</strong>
                     <span>{navigationTargetText(highlight)}</span>
