@@ -6,7 +6,7 @@ import type { EvSettings, Highlight, RouteOption, RouteOptionKind, SleepBase, Tr
 const AVERAGE_ROAD_SPEED_KMH = 68;
 const ABSOLUTE_RECOMMENDATION_LIMIT_HOURS = 4.75;
 const NORMAL_RECOMMENDATION_LIMIT_HOURS = 4.25;
-const MAX_ROUTE_OPTIONS = 6;
+const MAX_ROUTE_OPTIONS = 3;
 
 const regionProgress: Record<string, number> = {
   Kristiansand: 0,
@@ -1079,62 +1079,116 @@ export async function generateRouteOptions(
     }
   }
 
-  const deduped: RouteOption[] = [];
+  const evRiskRank = { ok: 0, watch: 1, caution: 2 } as const;
+  const activityHours = (option: RouteOption) =>
+    option.stops.reduce((total, stop) => total + stop.highlight.visitTimeHours, 0);
+  const totalLoadHours = (option: RouteOption) => option.estimatedDriveHours + activityHours(option);
+  const stopSetKey = (option: RouteOption) =>
+    option.stops.map((stop) => stop.highlight.id).sort().join("|");
+  const primaryTargetId = (option: RouteOption) => option.stops[0]?.highlight.id;
+  const compareOverall = (a: RouteOption, b: RouteOption) =>
+    b.score - a.score ||
+    a.estimatedDriveHours - b.estimatedDriveHours ||
+    evRiskRank[a.evLevel] - evRiskRank[b.evLevel] ||
+    scoreMustSee(b.stops.map((stop) => stop.highlight), priorityHighlightIds) -
+      scoreMustSee(a.stops.map((stop) => stop.highlight), priorityHighlightIds);
+
+  const candidates: RouteOption[] = [];
   const seenIds = new Set<string>();
-  const seenPrimaryTargets = new Set<string>();
-  const seenPrimaryRegionKinds = new Set<string>();
   const seenStopSets = new Set<string>();
 
-  const stopIdsFor = (option: RouteOption) => new Set(option.stops.map((stop) => stop.highlight.id));
-  const hasHeavyStopOverlap = (option: RouteOption) => {
-    const nextIds = stopIdsFor(option);
-    if (!nextIds.size) return false;
-
-    return deduped.some((existing) => {
-      if (existing.kind === "blijven" || option.kind === "blijven") return false;
-      const existingIds = stopIdsFor(existing);
-      const overlap = Array.from(nextIds).filter((id) => existingIds.has(id)).length;
-      return overlap / Math.min(nextIds.size, existingIds.size) >= 0.67;
-    });
-  };
-
-  const addIfUnique = (option: RouteOption) => {
-    if (seenIds.has(option.id)) return;
-
-    const stopSet = option.stops.map((stop) => stop.highlight.id).sort().join("|");
-
-    if (option.kind === "blijven") {
-      if (seenStopSets.has(stopSet)) return;
-      seenIds.add(option.id);
-      seenStopSets.add(stopSet);
-      deduped.push(option);
-      return;
-    }
-
-    const primaryTarget = option.stops[0]?.highlight.id;
-    if (!primaryTarget || seenPrimaryTargets.has(primaryTarget) || seenStopSets.has(stopSet)) return;
-    if (hasHeavyStopOverlap(option)) return;
-
-    const primaryRegion = option.stops[0]?.highlight.region;
-    const regionKindKey = `${option.kind}-${primaryRegion}`;
-    if (primaryRegion && seenPrimaryRegionKinds.has(regionKindKey)) return;
-
+  viableOptions.sort(compareOverall).forEach((option) => {
+    const stopSet = stopSetKey(option);
+    if (seenIds.has(option.id) || seenStopSets.has(stopSet)) return;
     seenIds.add(option.id);
-    seenPrimaryTargets.add(primaryTarget);
-    if (primaryRegion) seenPrimaryRegionKinds.add(regionKindKey);
     seenStopSets.add(stopSet);
-    deduped.push(option);
+    candidates.push(option);
+  });
+
+  if (!candidates.length) return [];
+
+  const selected: RouteOption[] = [];
+  const stopIdsFor = (option: RouteOption) => new Set(option.stops.map((stop) => stop.highlight.id));
+  const overlapsSelected = (option: RouteOption) =>
+    selected.some((existing) => {
+      if (primaryTargetId(existing) === primaryTargetId(option)) return true;
+      if (existing.kind === "blijven" || option.kind === "blijven") return false;
+
+      const nextIds = stopIdsFor(option);
+      const existingIds = stopIdsFor(existing);
+      if (!nextIds.size || !existingIds.size) return false;
+      const overlap = Array.from(nextIds).filter((id) => existingIds.has(id)).length;
+      return overlap / Math.min(nextIds.size, existingIds.size) >= 0.5;
+    });
+  const addRole = (
+    option: RouteOption | undefined,
+    recommendationRole: NonNullable<RouteOption["recommendationRole"]>,
+    recommendationReason: string,
+  ) => {
+    if (!option || overlapsSelected(option)) return false;
+    selected.push({ ...option, recommendationRole, recommendationReason });
+    return true;
   };
 
-  const strategicKinds = new Set<RouteOptionKind>(["blijven", "verder"]);
-  viableOptions
-    .filter((option) => strategicKinds.has(option.kind))
-    .sort((a, b) => b.score - a.score)
-    .forEach(addIfUnique);
-  viableOptions
-    .filter((option) => !strategicKinds.has(option.kind))
-    .sort((a, b) => b.score - a.score)
-    .forEach(addIfUnique);
+  const best = candidates[0];
+  addRole(
+    best,
+    "best",
+    `Dit is de hoogste totaalscore van alle haalbare, voldoende verschillende opties vanaf ${current.name}.`,
+  );
 
-  return deduped.slice(0, MAX_ROUTE_OPTIONS);
+  const calm = candidates
+    .filter((option) => option.id !== best.id && !overlapsSelected(option))
+    .filter(
+      (option) =>
+        option.estimatedDriveHours <= best.estimatedDriveHours - 0.75 ||
+        totalLoadHours(option) <= totalLoadHours(best) - 2,
+    )
+    .sort(compareOverall)[0];
+  if (calm) {
+    const driveDifference = Math.max(0, best.estimatedDriveHours - calm.estimatedDriveHours);
+    const loadDifference = Math.max(0, totalLoadHours(best) - totalLoadHours(calm));
+    addRole(
+      calm,
+      "calm",
+      driveDifference >= 0.75
+        ? `Deze optie vraagt ongeveer ${driveDifference.toFixed(1)} uur minder rijden dan de beste keuze.`
+        : `Deze optie houdt ongeveer ${loadDifference.toFixed(1)} uur meer ruimte in de dag over.`,
+    );
+  }
+
+  const progressThreshold = tripDirection === "flexible" ? 8 : 5;
+  const progress = candidates
+    .filter((option) => option.id !== best.id && !overlapsSelected(option))
+    .map((option) => ({
+      option,
+      progress: Math.max(
+        0,
+        ...option.stops.map((stop) => desiredTravelProgress(current, stop.highlight, tripDirection)),
+      ),
+    }))
+    .filter(
+      ({ option, progress }) =>
+        option.kind === "verder" || option.kind === "doorreis" || progress >= progressThreshold,
+    )
+    .sort((a, b) => b.progress - a.progress || compareOverall(a.option, b.option))[0];
+  if (progress) {
+    addRole(
+      progress.option,
+      "progress",
+      `Deze optie maakt de duidelijkste haalbare voortgang ${travelDirectionLabel(tripDirection)} zonder de rijtijdgrens te forceren.`,
+    );
+  }
+
+  for (const option of candidates) {
+    if (selected.length >= MAX_ROUTE_OPTIONS) break;
+    if (option.id === best.id || overlapsSelected(option)) continue;
+    addRole(
+      option,
+      "alternative",
+      "Dit is de hoogst scorende overgebleven optie die inhoudelijk voldoende van de andere keuzes verschilt.",
+    );
+  }
+
+  return selected.slice(0, MAX_ROUTE_OPTIONS);
 }

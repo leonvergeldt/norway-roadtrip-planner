@@ -1,17 +1,16 @@
 import {
+  Award,
   BatteryCharging,
-  CloudRain,
   Compass,
   Flag,
-  Gauge,
   Home,
-  MapPinned,
-  Mountain,
+  Leaf,
+  Map,
   Route,
   Star,
 } from "lucide-react";
 import { HighlightImage } from "./HighlightImage";
-import type { Highlight, RouteOption } from "../types";
+import type { Highlight, RecommendationRole, RouteOption } from "../types";
 
 interface RouteOptionCardProps {
   option: RouteOption;
@@ -34,19 +33,11 @@ function formatHours(value: number) {
   return `${value.toFixed(value % 1 === 0 ? 0 : 1)} uur`;
 }
 
-function optionIcon(kind: RouteOption["kind"]) {
-  if (kind === "actief") return <Mountain size={16} />;
-  if (kind === "scenic") return <Compass size={16} />;
-  if (kind === "doorreis" || kind === "verder") return <Route size={16} />;
-  if (kind === "slechtweer") return <CloudRain size={16} />;
-  return <MapPinned size={16} />;
-}
-
-function scoreLabel(score: number) {
-  if (score >= 75) return "Topmatch";
-  if (score >= 65) return "Sterke match";
-  if (score >= 55) return "Logische optie";
-  return "Alleen als het past";
+function recommendationMeta(role: RecommendationRole) {
+  if (role === "best") return { label: "Beste keuze", Icon: Award };
+  if (role === "calm") return { label: "Rustiger", Icon: Leaf };
+  if (role === "progress") return { label: "Verder reizen", Icon: Route };
+  return { label: "Anders van karakter", Icon: Compass };
 }
 
 export function RouteOptionCard({
@@ -57,46 +48,27 @@ export function RouteOptionCard({
   onSelect,
   onOpenHighlight,
 }: RouteOptionCardProps) {
+  const role = option.recommendationRole ?? "alternative";
+  const { label: roleLabel, Icon: RoleIcon } = recommendationMeta(role);
+  const activityHours = option.stops.reduce((total, stop) => total + stop.highlight.visitTimeHours, 0);
+
   return (
-    <article className={`route-card ${isSelected ? "selected" : ""}`} onClick={() => onSelect(option.id)}>
-      <header>
-        <span className="kind-chip">
-          {optionIcon(option.kind)}
-          {option.kind}
+    <article className={`route-card recommendation-${role} ${isSelected ? "selected" : ""}`}>
+      <header className="route-card-top">
+        <span className={`recommendation-chip ${role}`}>
+          <RoleIcon size={15} />
+          {roleLabel}
         </span>
-        <div className="score-stack">
-          <span className="score-pill">
-            <Gauge size={15} />
-            {scoreLabel(option.score)}
-          </span>
-          <span className={option.fitsDriveWindow ? "fit good" : "fit warn"}>
-            {option.fitsDriveWindow ? "past" : "ambitieus"}
-          </span>
-        </div>
+        <span className={option.fitsDriveWindow ? "fit good" : "fit warn"}>
+          {option.fitsDriveWindow ? "Past vandaag" : "Ambitieus"}
+        </span>
       </header>
-      <h3>{option.title}</h3>
-      <p className="route-guide">{option.guideText}</p>
-      {!!option.offlineLabels.length && (
-        <div className="route-labels" aria-label="Offline route-indicaties">
-          {option.offlineLabels.slice(0, 3).map((label) => (
-            <span key={label.label} className={`route-label ${label.tone}`} title={label.description}>
-              {label.label}
-            </span>
-          ))}
-          {option.offlineLabels.length > 3 && (
-            <span className="route-label neutral">+{option.offlineLabels.length - 3}</span>
-          )}
-        </div>
-      )}
-      {option.stops[0]?.highlight && (
-        <div className="route-visual">
-          <HighlightImage highlight={option.stops[0].highlight} />
-          <div>
-            <strong>{option.stops[0].highlight.name}</strong>
-            <p>{option.stops[0].highlight.detail?.[0] ?? option.stops[0].highlight.description}</p>
-          </div>
-        </div>
-      )}
+
+      <div className="route-card-copy">
+        <h3>{option.title}</h3>
+        <p className="route-guide">{option.guideText}</p>
+      </div>
+
       <dl className="stats">
         <div>
           <dt>Rijtijd</dt>
@@ -106,91 +78,18 @@ export function RouteOptionCard({
           <dt>Afstand</dt>
           <dd>{option.estimatedDistanceKm} km</dd>
         </div>
-        <div className="stat-type">
-          <dt>Type</dt>
-          <dd>{option.activityType}</dd>
+        <div>
+          <dt>Activiteit</dt>
+          <dd>{formatHours(activityHours)}</dd>
         </div>
       </dl>
-      <details className="score-panel">
-        <summary>
-          <span>Waarom deze positie?</span>
-          <em>Details</em>
-        </summary>
-        <p className="exact-score">
-          Score {option.score}/100 op basis van rijtijd, spreiding, must-see waarde, EV-risico en reisritme.
-        </p>
-        <p>{option.rankingReason}</p>
-        <p className="route-source">
-          {option.routeSource === "osrm"
-            ? "Afstand en rijtijd via online routeberekening over OpenStreetMap-wegen."
-            : "Afstand en rijtijd via fallbackschatting; geen wegennet gebruikt."}
-        </p>
-        {option.stops.some((stop) => hasNavigationTarget(stop.highlight)) && (
-          <p className="route-source">
-            De zwarte routelijn stopt bij praktische navigatiepunten. De gekleurde landmark-marker kan dus iets verderop liggen.
-          </p>
-        )}
-        {!!option.offlineLabels.length && (
-          <div className="offline-label-panel">
-            <strong>Offline route-indicatie</strong>
-            <ul>
-              {option.offlineLabels.map((label) => (
-                <li key={label.label}>
-                  <span className={`route-label ${label.tone}`}>{label.label}</span>
-                  <p>{label.description}</p>
-                </li>
-              ))}
-            </ul>
-          </div>
-        )}
-        <div className="score-grid" aria-label="Score-opbouw">
-          <span>
-            Rijtijd <strong>{option.scoreBreakdown.driveTime}</strong>
-          </span>
-          <span>
-            Spreiding <strong>{option.scoreBreakdown.activitySpread}</strong>
-          </span>
-          <span>
-            Must-see <strong>{option.scoreBreakdown.mustSee}</strong>
-          </span>
-          <span>
-            EV-risico <strong>{option.scoreBreakdown.evRisk}</strong>
-          </span>
-          <span>
-            Ritme <strong>{option.scoreBreakdown.rhythm}</strong>
-          </span>
-        </div>
-        <ul className="score-notes">
-          {option.scoreNotes.map((note) => (
-            <li key={note}>{note}</li>
-          ))}
-        </ul>
-      </details>
-      <div className={`ev-message ${option.evLevel}`}>
-        <BatteryCharging size={16} />
-        {option.evMessage}
-      </div>
-      {option.suggestedSleepBase && (
-        <div className="sleepbase-suggestion">
-          <Home size={16} />
-          <div>
-            <strong>Logische slaapbasis: {option.suggestedSleepBase.name}</strong>
-            <p>
-              {option.suggestedSleepBase.region} - ongeveer {option.suggestedSleepBase.distanceKm} km vanaf de laatste
-              stop. {option.suggestedSleepBase.reason}
-            </p>
-          </div>
-        </div>
-      )}
-      <div className="stops">
+
+      <div className="stops" aria-label="Belangrijkste stops">
         {option.stops.slice(0, 3).map((stop) => (
           <button
             key={stop.highlight.id}
             type="button"
-            onClick={(event) => {
-              event.stopPropagation();
-              onOpenHighlight(stop.highlight);
-            }}
+            onClick={() => onOpenHighlight(stop.highlight)}
           >
             <span className="stop-main">
               <strong>{stop.highlight.name}</strong>
@@ -200,54 +99,147 @@ export function RouteOptionCard({
                   Zeker doen
                 </em>
               )}
-              {hasNavigationTarget(stop.highlight) && (
-                <em>
-                  <Flag size={13} />
-                  Navigeer naar: {navigationTargetText(stop.highlight)}
-                </em>
-              )}
             </span>
             <span>{stop.distanceFromStartKm} km</span>
           </button>
         ))}
-        {option.stops.length > 3 && <div className="more-stops-note">+{option.stops.length - 3} extra stop in details</div>}
       </div>
-      <details className="more-info">
-        <summary>Waarom deze stops?</summary>
-        <div className="stop-context-list">
-          {option.stops.map((stop) => (
-            <article key={`context-${stop.highlight.id}`} className="stop-context">
-              <HighlightImage highlight={stop.highlight} />
-              <div>
-                <strong>{stop.highlight.name}</strong>
-                {(stop.highlight.detail ?? [stop.highlight.description]).slice(0, 2).map((paragraph) => (
-                  <p key={paragraph}>{paragraph}</p>
-                ))}
-                {stop.highlight.contentTips && (
-                  <p className="stop-tip">
-                    <strong>Beste moment:</strong> {stop.highlight.contentTips.bestMoment}
-                  </p>
-                )}
-              </div>
-            </article>
+
+      {!!option.offlineLabels.length && (
+        <div className="route-labels" aria-label="Route-indicaties">
+          {option.offlineLabels.slice(0, 3).map((label) => (
+            <span key={label.label} className={`route-label ${label.tone}`} title={label.description}>
+              {label.label}
+            </span>
           ))}
         </div>
-      </details>
-      <details className="more-info">
-        <summary>Wanneer kiezen en waarschuwingen</summary>
-        <p className="microcopy">
-          <strong>Wel kiezen:</strong> {option.whenToChoose}
-        </p>
-        <p className="microcopy">
-          <strong>Alternatief:</strong> {option.alternative}
-        </p>
-        {!!option.warnings.length && (
-          <ul className="warnings">
-            {option.warnings.map((warning) => (
-              <li key={warning}>{warning}</li>
+      )}
+
+      <div className={`ev-message ${option.evLevel}`}>
+        <BatteryCharging size={16} />
+        {option.evMessage}
+      </div>
+
+      <button
+        className="route-map-button"
+        type="button"
+        aria-pressed={isSelected}
+        onClick={() => onSelect(option.id)}
+      >
+        <Map size={16} />
+        {isSelected ? "Route staat op kaart" : "Bekijk op kaart"}
+      </button>
+
+      <details className="route-details">
+        <summary>
+          <span>Waarom deze keuze?</span>
+          <em>Details</em>
+        </summary>
+        <div className="route-detail-content">
+          <p className="role-reason">{option.recommendationReason ?? option.rankingReason}</p>
+          <p className="exact-score">
+            Score {option.score}/100 op basis van rijtijd, spreiding, must-see waarde, EV-risico en reisritme.
+          </p>
+          <p>{option.rankingReason}</p>
+
+          <div className="score-grid" aria-label="Score-opbouw">
+            <span>
+              Rijtijd <strong>{option.scoreBreakdown.driveTime}</strong>
+            </span>
+            <span>
+              Spreiding <strong>{option.scoreBreakdown.activitySpread}</strong>
+            </span>
+            <span>
+              Must-see <strong>{option.scoreBreakdown.mustSee}</strong>
+            </span>
+            <span>
+              EV-risico <strong>{option.scoreBreakdown.evRisk}</strong>
+            </span>
+            <span>
+              Ritme <strong>{option.scoreBreakdown.rhythm}</strong>
+            </span>
+          </div>
+
+          <ul className="score-notes">
+            {option.scoreNotes.map((note) => (
+              <li key={note}>{note}</li>
             ))}
           </ul>
-        )}
+
+          <div className="route-detail-section">
+            <strong>Routeberekening</strong>
+            <p className="route-source">
+              {option.routeSource === "osrm"
+                ? "Afstand en rijtijd via online routeberekening over OpenStreetMap-wegen."
+                : "Afstand en rijtijd via fallbackschatting; geen wegennet gebruikt."}
+            </p>
+            {option.stops.some((stop) => hasNavigationTarget(stop.highlight)) && (
+              <p className="route-source">
+                De routelijn stopt bij praktische parkeer- of aankomstpunten, niet altijd bij de landmark-marker.
+              </p>
+            )}
+          </div>
+
+          {!!option.offlineLabels.length && (
+            <div className="offline-label-panel route-detail-section">
+              <strong>Route-indicaties</strong>
+              <ul>
+                {option.offlineLabels.map((label) => (
+                  <li key={label.label}>
+                    <span className={`route-label ${label.tone}`}>{label.label}</span>
+                    <p>{label.description}</p>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          )}
+
+          {option.suggestedSleepBase && (
+            <div className="sleepbase-suggestion">
+              <Home size={16} />
+              <div>
+                <strong>Logische slaapbasis: {option.suggestedSleepBase.name}</strong>
+                <p>
+                  {option.suggestedSleepBase.region} - ongeveer {option.suggestedSleepBase.distanceKm} km vanaf de
+                  laatste stop. {option.suggestedSleepBase.reason}
+                </p>
+              </div>
+            </div>
+          )}
+
+          <div className="stop-context-list route-detail-section">
+            {option.stops.map((stop) => (
+              <article key={`context-${stop.highlight.id}`} className="stop-context">
+                <HighlightImage highlight={stop.highlight} />
+                <div>
+                  <strong>{stop.highlight.name}</strong>
+                  <p>{stop.highlight.detail?.[0] ?? stop.highlight.description}</p>
+                  {hasNavigationTarget(stop.highlight) && (
+                    <p className="stop-tip">
+                      <Flag size={12} /> Navigeer naar {navigationTargetText(stop.highlight)}
+                    </p>
+                  )}
+                </div>
+              </article>
+            ))}
+          </div>
+
+          <div className="route-detail-section">
+            <p className="microcopy">
+              <strong>Wel kiezen:</strong> {option.whenToChoose}
+            </p>
+            <p className="microcopy">
+              <strong>Alternatief:</strong> {option.alternative}
+            </p>
+            {!!option.warnings.length && (
+              <ul className="warnings">
+                {option.warnings.map((warning) => (
+                  <li key={warning}>{warning}</li>
+                ))}
+              </ul>
+            )}
+          </div>
+        </div>
       </details>
     </article>
   );

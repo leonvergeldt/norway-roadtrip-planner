@@ -18,6 +18,7 @@ import {
   RotateCcw,
   Route,
   Search,
+  Settings2,
   Sparkles,
   Star,
   Waves,
@@ -43,7 +44,7 @@ const dayStyles: Array<{ value: TravelStyle; label: string }> = [
 ];
 
 const tripDirections: Array<{ value: TripDirection; label: string }> = [
-  { value: "outbound", label: "Heen/noord" },
+  { value: "outbound", label: "Heen" },
   { value: "flexible", label: "Vrij" },
   { value: "returning", label: "Terug" },
 ];
@@ -565,6 +566,7 @@ function App() {
   const markerRefs = useRef<Record<string, LeafletMarker | null>>({});
   const [settings, setSettings] = useState<PlannerSettings>(() => loadSettings());
   const [routeOptions, setRouteOptions] = useState<RouteOption[]>([]);
+  const [arePlanningControlsOpen, setArePlanningControlsOpen] = useState(true);
   const [selectedOptionId, setSelectedOptionId] = useState<string | undefined>(settings.savedTodayOptionId);
   const [selectedHighlightId, setSelectedHighlightId] = useState<string>(settings.currentHighlightId);
   const [popupHighlightId, setPopupHighlightId] = useState<string | undefined>();
@@ -681,6 +683,9 @@ function App() {
         : selectedDatasetHighlight,
     [selectedDatasetHighlight, settings.customStart],
   );
+  const selectedDayStyleLabel = dayStyles.find((style) => style.value === settings.dayStyle)?.label ?? "Vrij";
+  const selectedTripDirectionLabel =
+    tripDirections.find((direction) => direction.value === settings.tripDirection)?.label ?? "Vrij";
 
   const selectedOption = routeOptions.find((option) => option.id === selectedOptionId);
   const focusedHighlight =
@@ -814,6 +819,7 @@ function App() {
   function clearCurrentRouteOptions() {
     setRouteOptions([]);
     setSelectedOptionId(undefined);
+    setArePlanningControlsOpen(true);
   }
 
   function updateSettings(update: Partial<PlannerSettings>) {
@@ -1002,6 +1008,7 @@ function App() {
       setRouteOptions(nextOptions);
       setSelectedOptionId(nextOptions[0]?.id);
       updateSettings({ savedTodayOptionId: nextOptions[0]?.id });
+      setArePlanningControlsOpen(false);
     } finally {
       setIsRouting(false);
     }
@@ -1087,7 +1094,7 @@ function App() {
               aria-expanded={isOfflineWidgetOpen}
             >
               <Download size={16} />
-              <span>{isCachingMap ? `${offlineProgressPercent}%` : "Kaartbasis"}</span>
+              <span>{isCachingMap ? `${offlineProgressPercent}%` : "Offline"}</span>
             </button>
             <button
               className="map-action-button"
@@ -1606,181 +1613,197 @@ function App() {
           </em>
         </button>
         <div className="panel-content">
-        <header className="panel-header">
-          <div>
-            <span className="eyebrow">EV roadtrip - 16 dagen</span>
-            <h1>Beslis per dag waar je heen gaat</h1>
-            <span className={isOnline ? "connection-pill online" : "connection-pill offline"}>
-              {isOnline
-                ? "Online: wegafstanden via OpenStreetMap"
-                : "Offline: app/data werken, rijtijden zijn schattingen"}
-            </span>
-          </div>
-          <button className="icon-button" type="button" onClick={resetFilters} aria-label="Reset filters">
-            <RotateCcw size={18} />
-          </button>
-        </header>
-
-        <section className="control-section">
-          <div className="start-summary">
-            <MapPinned size={17} />
-            <div>
-              <span>Startpunt</span>
-              <strong>{currentHighlight.name}</strong>
+          <header className="panel-header compact">
+            <div className="panel-title">
+              <span className="eyebrow">EV roadtrip - 16 dagen</span>
+              <h1>Dagopties vanaf {currentHighlight.name}</h1>
+              <span className={isOnline ? "connection-pill online" : "connection-pill offline"}>
+                {isOnline ? "Online routes" : "Offline schattingen"}
+              </span>
             </div>
-            {settings.customStart && (
-              <button type="button" onClick={clearCustomStart}>Wis</button>
-            )}
-          </div>
+            <button className="icon-button" type="button" onClick={resetFilters} aria-label="Reset filters">
+              <RotateCcw size={18} />
+            </button>
+          </header>
 
-          <div className="range-row">
-            <label htmlFor="drive-hours">Gewenste rijtijd vandaag</label>
-            <strong>{formatHours(settings.maxDriveHours)}</strong>
-          </div>
-          <input
-            id="drive-hours"
-            type="range"
-            min="1"
-            max="4"
-            step="0.5"
-            value={settings.maxDriveHours}
-            onChange={(event) => updatePlanningSettings({ maxDriveHours: Number(event.target.value) })}
-          />
-        </section>
-
-
-        <section className="control-section">
-          <div className="section-title">
-            <Sparkles size={17} />
-            <h2>Dagstijl</h2>
-          </div>
-          <div className="segmented">
-            {dayStyles.map((style) => (
-              <button
-                key={style.value}
-                type="button"
-                className={settings.dayStyle === style.value ? "active" : ""}
-                onClick={() => updatePlanningSettings({ dayStyle: style.value })}
-              >
-                {style.label}
-              </button>
-            ))}
-          </div>
-        </section>
-        <section className="control-section">
-          <div className="section-title">
-            <Compass size={17} />
-            <h2>Reisfase</h2>
-          </div>
-          <div className="segmented direction-segmented">
-            {tripDirections.map((direction) => (
-              <button
-                key={direction.value}
-                type="button"
-                className={settings.tripDirection === direction.value ? "active" : ""}
-                onClick={() => updatePlanningSettings({ tripDirection: direction.value })}
-              >
-                {direction.label}
-              </button>
-            ))}
-          </div>
-          <p className="microcopy">Gebruik Heen/noord tot Geiranger of Atlantic Road; zet Terug aan zodra Oslo, Telemark of Kristiansand weer logisch wordt.</p>
-        </section>
-
-        <section className="control-section ev-box">
-          <div className="section-title">
-            <Zap size={17} />
-            <h2>Peugeot E-3008 EV-marges</h2>
-          </div>
-          <div className="ev-grid">
-            <label>
-              Praktische range
-              <input
-                type="number"
-                min="250"
-                max="550"
-                value={settings.ev.practicalRangeKm}
-                onChange={(event) => updateEv("practicalRangeKm", Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Veiligheidsmarge %
-              <input
-                type="number"
-                min="5"
-                max="35"
-                value={settings.ev.safetyMarginPercent}
-                onChange={(event) => updateEv("safetyMarginPercent", Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Min. batterij aankomst %
-              <input
-                type="number"
-                min="5"
-                max="35"
-                value={settings.ev.minArrivalBatteryPercent}
-                onChange={(event) => updateEv("minArrivalBatteryPercent", Number(event.target.value))}
-              />
-            </label>
-            <label>
-              Max zonder laden km
-              <input
-                type="number"
-                min="120"
-                max="420"
-                value={settings.ev.maxDistanceWithoutChargingKm}
-                onChange={(event) => updateEv("maxDistanceWithoutChargingKm", Number(event.target.value))}
-              />
-            </label>
-          </div>
-          <p className="disclaimer">
-            EV-inschattingen zijn indicatief en gebruiken geen actuele laadpaaldata. Controleer echte laadstops
-            onderweg in een actuele laadapp.
-          </p>
-        </section>
-
-        <div className="action-row">
-          <button className="primary-button" type="button" onClick={showOptions} disabled={isRouting}>
-            <Route size={18} />
-            {isRouting ? "Routes berekenen..." : "Geef opties voor vandaag"}
-          </button>
-          <button className="secondary-button" type="button" onClick={resetFilters}>
-            Reset filters
-          </button>
-        </div>
-
-        <section className="options-section">
-          <div className="section-title">
-            <Compass size={17} />
-            <h2>Routevoorstellen</h2>
-          </div>
-
-          {!routeOptions.length && (
-            <div className="empty-state">
-              Kies een startpunt op de kaart, via GPS of met prikpunt. Daarna verschijnen dagopties met stops op de kaart.
-            </div>
+          {!!routeOptions.length && !arePlanningControlsOpen && (
+            <button
+              type="button"
+              className="planner-summary"
+              onClick={() => setArePlanningControlsOpen(true)}
+            >
+              <span className="planner-summary-main">
+                <Settings2 size={16} />
+                <strong>Instellingen aanpassen</strong>
+              </span>
+              <span className="planner-summary-values">
+                {selectedDayStyleLabel} · {selectedTripDirectionLabel} · max. {formatHours(settings.maxDriveHours)}
+              </span>
+            </button>
           )}
 
-          {!!routeOptions.length && (
-            <Suspense fallback={<div className="empty-state">Routekaarten laden...</div>}>
-              {routeOptions.map((option) => (
-                <RouteOptionCard
-                  key={option.id}
-                  option={option}
-                  isSelected={selectedOptionId === option.id}
-                  priorityHighlightIdSet={priorityHighlightIdSet}
-                  completedHighlightIdSet={completedHighlightIdSet}
-                  onSelect={(optionId) => {
-                    setSelectedOptionId(optionId);
-                    updateSettings({ savedTodayOptionId: optionId });
-                  }}
-                  onOpenHighlight={openHighlightPopup}
+          {(arePlanningControlsOpen || !routeOptions.length) && (
+            <div className="planner-controls">
+              <section className="control-section planning-basics">
+                <div className="start-summary">
+                  <MapPinned size={17} />
+                  <div>
+                    <span>Startpunt</span>
+                    <strong>{currentHighlight.name}</strong>
+                  </div>
+                  {settings.customStart && (
+                    <button type="button" onClick={clearCustomStart}>Wis</button>
+                  )}
+                </div>
+
+                <div className="range-row">
+                  <label htmlFor="drive-hours">Gewenste rijtijd</label>
+                  <strong>{formatHours(settings.maxDriveHours)}</strong>
+                </div>
+                <input
+                  id="drive-hours"
+                  type="range"
+                  min="1"
+                  max="4"
+                  step="0.5"
+                  value={settings.maxDriveHours}
+                  onChange={(event) => updatePlanningSettings({ maxDriveHours: Number(event.target.value) })}
                 />
-              ))}
-            </Suspense>
+              </section>
+
+              <section className="control-section">
+                <div className="section-title">
+                  <Sparkles size={17} />
+                  <h2>Dagstijl</h2>
+                </div>
+                <div className="segmented day-style-segmented">
+                  {dayStyles.map((style) => (
+                    <button
+                      key={style.value}
+                      type="button"
+                      className={settings.dayStyle === style.value ? "active" : ""}
+                      onClick={() => updatePlanningSettings({ dayStyle: style.value })}
+                    >
+                      {style.label}
+                    </button>
+                  ))}
+                </div>
+              </section>
+
+              <section className="control-section">
+                <div className="section-title">
+                  <Compass size={17} />
+                  <h2>Reisfase</h2>
+                </div>
+                <div className="segmented direction-segmented">
+                  {tripDirections.map((direction) => (
+                    <button
+                      key={direction.value}
+                      type="button"
+                      className={settings.tripDirection === direction.value ? "active" : ""}
+                      onClick={() => updatePlanningSettings({ tripDirection: direction.value })}
+                    >
+                      {direction.label}
+                    </button>
+                  ))}
+                </div>
+                <details className="phase-help">
+                  <summary>Wat betekent dit?</summary>
+                  <p className="microcopy">
+                    Gebruik Heen tot Geiranger of Atlantic Road. Zet Terug aan zodra Oslo, Telemark of
+                    Kristiansand weer leidend wordt.
+                  </p>
+                </details>
+              </section>
+
+              <details className="ev-settings-panel">
+                <summary>
+                  <span><Zap size={17} /> Peugeot E-3008 EV-marges</span>
+                  <em>Aanpassen</em>
+                </summary>
+                <div className="ev-settings-content">
+                  <div className="ev-grid">
+                    <label>
+                      Praktische range
+                      <input
+                        type="number"
+                        min="250"
+                        max="550"
+                        value={settings.ev.practicalRangeKm}
+                        onChange={(event) => updateEv("practicalRangeKm", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Veiligheidsmarge %
+                      <input
+                        type="number"
+                        min="5"
+                        max="35"
+                        value={settings.ev.safetyMarginPercent}
+                        onChange={(event) => updateEv("safetyMarginPercent", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Min. batterij aankomst %
+                      <input
+                        type="number"
+                        min="5"
+                        max="35"
+                        value={settings.ev.minArrivalBatteryPercent}
+                        onChange={(event) => updateEv("minArrivalBatteryPercent", Number(event.target.value))}
+                      />
+                    </label>
+                    <label>
+                      Max zonder laden km
+                      <input
+                        type="number"
+                        min="120"
+                        max="420"
+                        value={settings.ev.maxDistanceWithoutChargingKm}
+                        onChange={(event) => updateEv("maxDistanceWithoutChargingKm", Number(event.target.value))}
+                      />
+                    </label>
+                  </div>
+                  <p className="disclaimer">
+                    Indicatieve EV-inschatting zonder actuele laadpaaldata. Controleer echte laadstops onderweg.
+                  </p>
+                </div>
+              </details>
+
+              <div className="action-row">
+                <button className="primary-button" type="button" onClick={showOptions} disabled={isRouting}>
+                  <Route size={18} />
+                  {isRouting ? "Routes berekenen..." : "Bekijk dagopties"}
+                </button>
+              </div>
+            </div>
           )}
-        </section>
+
+          {!!routeOptions.length && !arePlanningControlsOpen && (
+            <section className="options-section">
+              <div className="section-title">
+                <Compass size={17} />
+                <h2>{routeOptions.length} verschillende keuzes</h2>
+              </div>
+              <Suspense fallback={<div className="empty-state">Routekaarten laden...</div>}>
+                {routeOptions.map((option) => (
+                  <RouteOptionCard
+                    key={option.id}
+                    option={option}
+                    isSelected={selectedOptionId === option.id}
+                    priorityHighlightIdSet={priorityHighlightIdSet}
+                    completedHighlightIdSet={completedHighlightIdSet}
+                    onSelect={(optionId) => {
+                      setSelectedOptionId(optionId);
+                      updateSettings({ savedTodayOptionId: optionId });
+                      setMapFocusMode(true);
+                    }}
+                    onOpenHighlight={openHighlightPopup}
+                  />
+                ))}
+              </Suspense>
+            </section>
+          )}
         </div>
       </aside>
     </main>

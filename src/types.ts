@@ -109,9 +109,13 @@ export type RouteOptionKind =
   | "slechtweer"
   | "blijven";
 
+export type RecommendationRole = "best" | "calm" | "progress" | "alternative";
+
 export interface RouteOption {
   id: string;
   kind: RouteOptionKind;
+  recommendationRole?: RecommendationRole;
+  recommendationReason?: string;
   title: string;
   guideText: string;
   rankingReason: string;

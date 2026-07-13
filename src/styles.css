@@ -916,10 +916,28 @@ h3 {
 .primary-button,
 .secondary-button,
 .text-button,
+.route-map-button,
 .route-card .stops button,
 .score-panel summary,
-.more-info summary {
+.more-info summary,
+.route-details summary,
+.phase-help summary,
+.ev-settings-panel summary,
+.planner-summary {
   border: 0;
+}
+
+.panel-header.compact {
+  align-items: flex-start;
+}
+
+.panel-title {
+  display: grid;
+  min-width: 0;
+}
+
+.panel-header.compact h1 {
+  font-size: 1.35rem;
 }
 
 .icon-button {
@@ -967,6 +985,41 @@ h3 {
   background: #f8faf9;
   border: 1px solid #dce5e1;
   border-radius: 7px;
+}
+
+.planner-controls {
+  display: grid;
+  gap: 10px;
+}
+
+.planner-summary {
+  display: grid;
+  gap: 5px;
+  width: 100%;
+  padding: 10px 12px;
+  color: #172033;
+  background: #eef6f3;
+  border: 1px solid #cfe2dc;
+  border-radius: 8px;
+  text-align: left;
+}
+
+.planner-summary-main,
+.planner-summary-values {
+  display: flex;
+  align-items: center;
+}
+
+.planner-summary-main {
+  gap: 7px;
+  color: #0f3f3a;
+  font-size: 0.82rem;
+}
+
+.planner-summary-values {
+  color: #526070;
+  font-size: 0.78rem;
+  font-weight: 750;
 }
 
 .start-summary svg {
@@ -1040,9 +1093,10 @@ input[type="range"] {
 .range-row,
 .section-title,
 .action-row,
-.route-card header,
+.route-card-top,
 .ev-message,
 .kind-chip,
+.recommendation-chip,
 .score-stack,
 .score-pill,
 .fit {
@@ -1051,7 +1105,7 @@ input[type="range"] {
 }
 
 .range-row,
-.route-card header {
+.route-card-top {
   justify-content: space-between;
   gap: 12px;
 }
@@ -1065,6 +1119,10 @@ input[type="range"] {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
   gap: 6px;
+}
+
+.day-style-segmented {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
 }
 
 .segmented button {
@@ -1088,8 +1146,60 @@ input[type="range"] {
   grid-template-columns: repeat(3, 1fr);
 }
 
+.phase-help {
+  color: #64748b;
+}
+
+.phase-help summary {
+  width: fit-content;
+  color: #0f766e;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.phase-help p {
+  margin-top: 7px;
+}
+
 .ev-box {
   background: #f7fbfa;
+}
+
+.ev-settings-panel {
+  overflow: hidden;
+  background: #f7fbfa;
+  border: 1px solid #dce8e4;
+  border-radius: 8px;
+}
+
+.ev-settings-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  min-height: 42px;
+  padding: 9px 12px;
+  color: #172033;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.ev-settings-panel > summary span {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+}
+
+.ev-settings-panel > summary em {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-style: normal;
+}
+
+.ev-settings-content {
+  display: grid;
+  gap: 10px;
+  padding: 0 12px 12px;
 }
 
 .ev-grid {
@@ -1169,6 +1279,11 @@ input[type="range"] {
   border: 1px solid #dfe6e3;
   border-radius: 8px;
   box-shadow: 0 10px 24px rgba(32, 45, 58, 0.06);
+}
+
+.route-card-copy {
+  display: grid;
+  gap: 5px;
 }
 
 .route-card.selected {
@@ -1254,6 +1369,7 @@ input[type="range"] {
 }
 
 .kind-chip,
+.recommendation-chip,
 .score-pill,
 .fit {
   gap: 6px;
@@ -1289,6 +1405,31 @@ input[type="range"] {
 .fit.warn {
   color: #9a3412;
   background: #ffedd5;
+}
+
+.recommendation-chip {
+  color: #334155;
+  background: #eef3f1;
+}
+
+.recommendation-chip.best {
+  color: #0f3f3a;
+  background: #dff7f1;
+}
+
+.recommendation-chip.calm {
+  color: #166534;
+  background: #e8f7e9;
+}
+
+.recommendation-chip.progress {
+  color: #1e40af;
+  background: #e8efff;
+}
+
+.recommendation-chip.alternative {
+  color: #6b4f12;
+  background: #fff7d6;
 }
 
 .route-labels {
@@ -1382,6 +1523,24 @@ input[type="range"] {
   background: #fee2e2;
 }
 
+.route-map-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-height: 38px;
+  color: #ffffff;
+  background: #172033;
+  border-radius: 7px;
+  font-size: 0.82rem;
+  font-weight: 850;
+}
+
+.route-map-button[aria-pressed="true"] {
+  color: #0f3f3a;
+  background: #dff7f1;
+}
+
 .sleepbase-suggestion {
   display: grid;
   grid-template-columns: 18px minmax(0, 1fr);
@@ -1412,7 +1571,8 @@ input[type="range"] {
 }
 
 .score-panel,
-.more-info {
+.more-info,
+.route-details {
   display: grid;
   gap: 8px;
   padding: 10px;
@@ -1426,7 +1586,8 @@ input[type="range"] {
 }
 
 .score-panel summary,
-.more-info summary {
+.more-info summary,
+.route-details summary {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -1440,12 +1601,14 @@ input[type="range"] {
 }
 
 .score-panel summary::-webkit-details-marker,
-.more-info summary::-webkit-details-marker {
+.more-info summary::-webkit-details-marker,
+.route-details summary::-webkit-details-marker {
   display: none;
 }
 
 .score-panel summary::after,
-.more-info summary::after {
+.more-info summary::after,
+.route-details summary::after {
   content: "+";
   display: grid;
   flex: 0 0 24px;
@@ -1460,11 +1623,13 @@ input[type="range"] {
 }
 
 .score-panel[open] summary::after,
-.more-info[open] summary::after {
+.more-info[open] summary::after,
+.route-details[open] summary::after {
   content: "-";
 }
 
-.score-panel summary em {
+.score-panel summary em,
+.route-details summary em {
   color: #64748b;
   font-size: 0.74rem;
   font-style: normal;
@@ -1486,11 +1651,43 @@ input[type="range"] {
   font-weight: 800;
 }
 
+.route-details .exact-score {
+  color: #0f3f3a;
+  font-weight: 800;
+}
+
 .route-source {
   padding: 7px 8px;
   background: #ffffff;
   border-radius: 6px;
   font-weight: 700;
+}
+
+.route-detail-content {
+  display: grid;
+  gap: 10px;
+  padding-top: 3px;
+}
+
+.role-reason {
+  padding: 8px 9px;
+  color: #0f3f3a !important;
+  background: #eaf6f2;
+  border-radius: 7px;
+  font-weight: 750;
+}
+
+.route-detail-section {
+  display: grid;
+  gap: 7px;
+  padding-top: 9px;
+  border-top: 1px solid #dfe6e3;
+}
+
+.stop-tip {
+  display: flex;
+  align-items: center;
+  gap: 5px;
 }
 
 .offline-label-panel {
@@ -2194,9 +2391,54 @@ input[type="range"] {
     padding: 12px;
   }
 
-  .ev-box,
-  .options-section > .section-title {
+  .ev-box {
     display: none;
+  }
+
+  .panel-header.compact h1 {
+    font-size: 1.12rem;
+    line-height: 1.2;
+  }
+
+  .panel-header.compact .eyebrow {
+    margin-bottom: 3px;
+    font-size: 0.68rem;
+  }
+
+  .panel-header.compact .connection-pill {
+    margin-top: 6px;
+  }
+
+  .planner-controls {
+    gap: 8px;
+  }
+
+  .planner-summary {
+    padding: 9px 10px;
+  }
+
+  .control-section {
+    gap: 9px;
+    padding: 10px;
+  }
+
+  .segmented button {
+    min-height: 36px;
+    padding: 7px 5px;
+    font-size: 0.78rem;
+  }
+
+  .ev-settings-panel > summary {
+    min-height: 40px;
+    padding: 8px 10px;
+  }
+
+  .ev-settings-content {
+    padding: 0 10px 10px;
+  }
+
+  .options-section > .section-title {
+    padding-top: 0;
   }
 
   .route-card {
@@ -2248,7 +2490,8 @@ input[type="range"] {
 
   .score-pill,
   .fit,
-  .kind-chip {
+  .kind-chip,
+  .recommendation-chip {
     min-height: 24px;
     padding: 3px 7px;
     font-size: 0.72rem;
@@ -2267,6 +2510,18 @@ input[type="range"] {
     width: min(236px, calc(100vw - 72px)) !important;
     max-height: min(220px, 32dvh);
     margin: 10px 12px 12px;
+  }
+
+  .route-map-button {
+    min-height: 40px;
+  }
+
+  .route-details {
+    padding: 9px;
+  }
+
+  .score-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .popup {
