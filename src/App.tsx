@@ -142,7 +142,7 @@ const markerIconPaths: Record<MarkerIconName, string> = {
   church:
     '<path d="M12 3v18"/><path d="M9 6h6"/><path d="m5 10 7-5 7 5"/><path d="M6 21v-9h12v9"/><path d="M10 21v-5a2 2 0 0 1 4 0v5"/>',
   footprints:
-    '<path d="M8 7a2 2 0 1 0-3 2c1 1 2 2 2 4"/><path d="M6 17a2 2 0 1 0 4 0c0-2-2-3-3-4"/><path d="M16 5a2 2 0 1 0-3 2c1 1 2 2 2 4"/><path d="M14 15a2 2 0 1 0 4 0c0-2-2-3-3-4"/>',
+    '<path d="M4 16v-2.38C4 11.5 2.97 10.5 3 8c.03-2.72 1.49-6 4.5-6C9.37 2 10 3.8 10 5.5c0 3.11-2 5.66-2 8.68V16a2 2 0 1 1-4 0Z"/><path d="M20 20v-2.38c0-2.12 1.03-3.12 1-5.62-.03-2.72-1.49-6-4.5-6C14.63 6 14 7.8 14 9.5c0 3.11 2 5.66 2 8.68V20a2 2 0 1 0 4 0Z"/><path d="M16 17h4"/><path d="M4 13h4"/>',
   home: '<path d="m3 11 9-8 9 8"/><path d="M5 10v11h14v-11"/><path d="M9 21v-6h6v6"/>',
   mapPin: '<path d="M12 21s7-6 7-12a7 7 0 1 0-14 0c0 6 7 12 7 12Z"/><circle cx="12" cy="9" r="2.5"/>',
   navigation: '<path d="m12 3 7 18-7-4-7 4 7-18Z"/>',
@@ -449,7 +449,7 @@ function buildHighlightClusters({
 
     const latKey = Math.floor(highlight.lat / cellSize);
     const lngKey = Math.floor(highlight.lng / cellSize);
-    const key = `${latKey}:${lngKey}`;
+    const key = `${highlight.region}:${latKey}:${lngKey}`;
     const bucket = buckets.get(key);
     if (bucket) {
       bucket.push(highlight);
@@ -461,8 +461,8 @@ function buildHighlightClusters({
   const clusters: HighlightCluster[] = [];
 
   buckets.forEach((bucket, key) => {
-    if (bucket.length === 1) {
-      individualHighlights.push(bucket[0]);
+    if (bucket.length < 3) {
+      individualHighlights.push(...bucket);
       return;
     }
 
@@ -1106,6 +1106,9 @@ function App() {
     setSelectedHighlightId(highlight.id);
     clearCurrentRouteOptions();
     setIsPickingStart(false);
+    closeOpenHighlightPopups();
+    setMapDetailHighlightId(undefined);
+    setMapFocusMode(false);
   }
 
   return (
