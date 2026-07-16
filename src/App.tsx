@@ -135,7 +135,7 @@ const markerIconByCategory: Record<Category, MarkerIconName> = {
 
 const markerIconPaths: Record<MarkerIconName, string> = {
   binoculars:
-    '<path d="M7 7h3l2 9h-4l-1-4h-2l-1 4h-3l2-7a3 3 0 0 1 3-2Z"/><path d="M17 7h-3l-2 9h4l1-4h2l1 4h3l-2-7a3 3 0 0 0-3-2Z"/><path d="M10 7h4"/><path d="M8 16a2 2 0 1 1-4 0"/><path d="M20 16a2 2 0 1 1-4 0"/>',
+    '<path d="M10 10h4"/><path d="M19 7V4a1 1 0 0 0-1-1h-2a1 1 0 0 0-1 1v3"/><path d="M20 21a2 2 0 0 0 2-2v-3.851c0-1.39-2-2.962-2-4.829V8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v11a2 2 0 0 0 2 2z"/><path d="M22 16H2"/><path d="M4 21a2 2 0 0 1-2-2v-3.851c0-1.39 2-2.962 2-4.829V8a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v11a2 2 0 0 1-2 2z"/><path d="M9 7V4a1 1 0 0 0-1-1H6a1 1 0 0 0-1 1v3"/>',
   building:
     '<path d="M4 21h16"/><path d="M6 21v-15a2 2 0 0 1 2-2h8a2 2 0 0 1 2 2v15"/><path d="M9 8h1"/><path d="M14 8h1"/><path d="M9 12h1"/><path d="M14 12h1"/><path d="M10 21v-4h4v4"/>',
   check: '<path d="M20 6 9 17l-5-5"/>',

@@ -11,6 +11,7 @@ const MAX_ROUTE_OPTIONS = 3;
 const regionProgress: Record<string, number> = {
   Kristiansand: 0,
   Sorlandet: 3,
+  Setesdal: 11,
   Dalane: 16,
   Jaeren: 18,
   Stavanger: 20,
